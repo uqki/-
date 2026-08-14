@@ -1,452 +1,447 @@
---==================== FPS チートスクリプト (モバイル最適化・修正版) ====================
--- すべてのAPIを活用し、エラーがあれば通知で報告
+--[[
+    FPS Cheat Script - Mobile Executor Optimized
+    Features: ESP / Aimbot / Third Person / FOV Slider
+    GUI: Simple, Draggable, Minimizable
+--]]
 
-local success, err = pcall(function()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
 
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local UserInputService = game:GetService("UserInputService")
-    local Workspace = game:GetService("Workspace")
-    local StarterGui = game:GetService("StarterGui")
-    local Camera = Workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
 
-    local player = Players.LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
+-- ============================================================
+-- 1. Notification System (print禁止)
+-- ============================================================
+local function Notify(title, text, duration)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = duration or 3
+    })
+end
 
-    -- 通知関数
-    local function Notify(title, text, duration)
-        StarterGui:SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Duration = duration or 3
-        })
-    end
+-- ============================================================
+-- 2. GUI Construction (Mobile Optimized)
+-- ============================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FPS_Cheat_Mobile_v1"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
-    -- Executor情報表示
-    local executor = identifyexecutor()
-    Notify("Executor", executor.name .. " v" .. executor.version, 3)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 240, 0, 300)
+MainFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
 
-    --==================== Drawing API 確認 ====================
-    local Drawing = getrenv().Drawing or Drawing
-    local hasDrawing = (Drawing and type(Drawing.new) == "function")
-    if not hasDrawing then
-        Notify("警告", "Drawingが利用できないため、ESPはテキストのみ表示", 5)
-    end
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
-    --==================== 設定 ====================
-    local settings = {
-        espEnabled = false,
-        aimbotEnabled = false,
-        tpsEnabled = false,
-        fovValue = 70,
-        aimFovLimit = 120,
-        teamCheck = true,
-    }
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 38)
+TopBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TopBar.BorderSizePixel = 0
+TopBar.Active = true
+TopBar.Parent = MainFrame
 
-    --==================== ESP（テキスト＋オプションでボックス） ====================
-    local espData = {}
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 10)
 
-    local function clearESP()
-        for _, data in pairs(espData) do
-            if data.box then data.box:Remove() end
-            if data.text then data.text:Remove() end
-            if data.line then data.line:Remove() end
-        end
-        espData = {}
-    end
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -90, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "FPS Cheat"
+Title.TextColor3 = Color3.fromRGB(240, 240, 240)
+Title.TextSize = 17
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
 
-    local function updateESP()
-        if not settings.espEnabled then
-            clearESP()
-            return
-        end
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 32, 0, 28)
+MinimizeBtn.Position = UDim2.new(1, -72, 0, 5)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
+MinimizeBtn.Text = "−"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextSize = 16
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Parent = TopBar
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
 
-        local currentPlayers = Players:GetPlayers()
-        local newData = {}
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 32, 0, 28)
+CloseBtn.Position = UDim2.new(1, -36, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 55, 55)
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = TopBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
-        for _, plr in ipairs(currentPlayers) do
-            if plr == player then continue end
-            if settings.teamCheck and plr.Team and player.Team and plr.Team == player.Team then continue end
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "Content"
+ContentFrame.Size = UDim2.new(1, -20, 1, -48)
+ContentFrame.Position = UDim2.new(0, 10, 0, 44)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
 
-            local char = plr.Character
-            if not char then continue end
-            local head = char:FindFirstChild("Head")
-            if not head then continue end
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Parent = ContentFrame
 
-            local headPos = head.Position
-            local rootPos = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or headPos - Vector3.new(0, 2, 0)
-            local headScreen, onScreen1 = Camera:WorldToScreenPoint(headPos)
-            local rootScreen, onScreen2 = Camera:WorldToScreenPoint(rootPos)
+-- ============================================================
+-- 3. UI Helpers
+-- ============================================================
+local function CreateToggle(name, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 42)
+    Frame.BackgroundTransparency = 1
+    Frame.Parent = ContentFrame
 
-            -- 画面外でもデータは保持（visible=false）
-            local data = espData[plr]
-            if not data then
-                -- テキストは必ず作成
-                local text = Drawing and Drawing.new("Text")
-                if text then
-                    text.Text = plr.Name
-                    text.Size = 14
-                    text.Color = Color3.fromRGB(255, 255, 255)
-                    text.Center = true
-                    text.Outlined = true
-                    text.OutlineColor = Color3.fromRGB(0, 0, 0)
-                end
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0.55, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(210, 210, 210)
+    Label.TextSize = 14
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
 
-                -- ボックスと線はDrawingがあれば作成
-                local box, line
-                if hasDrawing then
-                    box = Drawing.new("Box")
-                    box.Thickness = 1.5
-                    box.Color = Color3.fromRGB(255, 50, 50)
-                    box.Filled = false
-                    box.Transparency = 0.8
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0, 56, 0, 28)
+    Btn.Position = UDim2.new(1, -56, 0.5, -14)
+    Btn.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
+    Btn.Text = "OFF"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 12
+    Btn.Font = Enum.Font.GothamBold
+    Btn.Parent = Frame
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 14)
 
-                    line = Drawing.new("Line")
-                    line.Thickness = 1
-                    line.Color = Color3.fromRGB(255, 255, 0)
-                    line.Transparency = 0.5
-                end
-
-                data = { text = text, box = box, line = line }
-            end
-
-            -- 位置更新
-            if data.text then
-                data.text.Visible = true
-                data.text.Position = Vector2.new(headScreen.X, headScreen.Y - 25)
-                data.text.Text = plr.Name
-            end
-
-            if onScreen1 and onScreen2 then
-                local height = math.abs(headScreen.Y - rootScreen.Y)
-                local width = height * 0.6
-                local topLeft = Vector2.new(headScreen.X - width/2, headScreen.Y)
-
-                if data.box then
-                    data.box.Visible = true
-                    data.box.Size = Vector2.new(width, height)
-                    data.box.Position = topLeft
-                end
-
-                if data.line then
-                    data.line.Visible = true
-                    data.line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    data.line.To = Vector2.new(headScreen.X, headScreen.Y)
-                end
-            else
-                if data.box then data.box.Visible = false end
-                if data.line then data.line.Visible = false end
-            end
-
-            newData[plr] = data
-        end
-
-        -- 削除処理
-        for plr, data in pairs(espData) do
-            if not newData[plr] then
-                if data.box then data.box:Remove() end
-                if data.text then data.text:Remove() end
-                if data.line then data.line:Remove() end
-            end
-        end
-        espData = newData
-    end
-
-    --==================== エイムボット ====================
-    local function getClosestPlayer()
-        local cameraPos = Camera.CFrame.Position
-        local closest = nil
-        local closestDist = math.huge
-
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr == player then continue end
-            if settings.teamCheck and plr.Team and player.Team and plr.Team == player.Team then continue end
-
-            local char = plr.Character
-            if not char then continue end
-            local head = char:FindFirstChild("Head")
-            if not head then continue end
-
-            local headPos = head.Position
-            local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
-            if not onScreen then continue end
-
-            local center = Camera.ViewportSize / 2
-            local delta = Vector2.new(screenPos.X - center.X, screenPos.Y - center.Y)
-            local magnitude = delta.Magnitude
-            local fovRad = math.rad(settings.aimFovLimit)
-            local maxDist = math.tan(fovRad) * Camera.ViewportSize.Y / 2
-            if magnitude > maxDist then continue end
-
-            local dist = (headPos - cameraPos).Magnitude
-            if dist < closestDist then
-                closestDist = dist
-                closest = plr
-            end
-        end
-
-        return closest
-    end
-
-    local function updateAimbot()
-        if not settings.aimbotEnabled then return end
-        local target = getClosestPlayer()
-        if not target then return end
-        local head = target.Character and target.Character:FindFirstChild("Head")
-        if not head then return end
-
-        local targetPos = head.Position
-        local cameraPos = Camera.CFrame.Position
-        Camera.CFrame = CFrame.lookAt(cameraPos, targetPos)
-    end
-
-    --==================== 三人称 ====================
-    local function updateTPS()
-        if settings.tpsEnabled then
-            local char = player.Character
-            if not char then return end
-            local head = char:FindFirstChild("Head")
-            if not head then return end
-            local headPos = head.Position
-            local offset = CFrame.new(headPos) * CFrame.new(0, 1.5, 8)
-            Camera.CameraType = Enum.CameraType.Custom
-            Camera.CFrame = offset
-        else
-            if Camera.CameraType ~= Enum.CameraType.Fixed then
-                Camera.CameraType = Enum.CameraType.Fixed
-            end
-        end
-    end
-
-    --==================== メインループ ====================
-    RunService.RenderStepped:Connect(function()
-        Camera.FieldOfView = settings.fovValue
-        updateESP()
-        updateAimbot()
-        updateTPS()
+    local enabled = false
+    Btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        Btn.BackgroundColor3 = enabled and Color3.fromRGB(0, 180, 90) or Color3.fromRGB(55, 55, 70)
+        Btn.Text = enabled and "ON" or "OFF"
+        callback(enabled)
     end)
+    return Frame
+end
 
-    --==================== UI作成 ====================
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "FPS_Cheat_UI"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = playerGui
+local function CreateSlider(name, min, max, default, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 55)
+    Frame.BackgroundTransparency = 1
+    Frame.Parent = ContentFrame
 
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 210, 0, 300)
-    mainFrame.Position = UDim2.new(0.5, -105, 0.5, -150)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    mainFrame.BackgroundTransparency = 0.15
-    mainFrame.BorderSizePixel = 1
-    mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 255)
-    mainFrame.Active = true
-    mainFrame.Parent = screenGui
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0, 22)
+    Label.BackgroundTransparency = 1
+    Label.Text = name .. ": " .. default
+    Label.TextColor3 = Color3.fromRGB(210, 210, 210)
+    Label.TextSize = 14
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
 
-    -- タイトルバー
-    local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 30)
-    titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-    titleBar.BackgroundTransparency = 0.3
-    titleBar.BorderSizePixel = 0
-    titleBar.Parent = mainFrame
+    local Bg = Instance.new("Frame")
+    Bg.Size = UDim2.new(1, 0, 0, 10)
+    Bg.Position = UDim2.new(0, 0, 0, 34)
+    Bg.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+    Bg.BorderSizePixel = 0
+    Bg.Parent = Frame
+    Instance.new("UICorner", Bg).CornerRadius = UDim.new(0, 5)
 
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "⚡ FPS Cheat"
-    titleLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 16
-    titleLabel.Parent = titleBar
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = Bg
+    Instance.new("UICorner", Fill).CornerRadius = UDim.new(0, 5)
 
-    local minBtn = Instance.new("TextButton")
-    minBtn.Size = UDim2.new(0, 30, 1, 0)
-    minBtn.Position = UDim2.new(1, -30, 0, 0)
-    minBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 100)
-    minBtn.Text = "─"
-    minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minBtn.TextSize = 18
-    minBtn.Font = Enum.Font.GothamBold
-    minBtn.Parent = titleBar
+    local Knob = Instance.new("TextButton")
+    Knob.Size = UDim2.new(0, 18, 0, 18)
+    Knob.Position = UDim2.new((default - min) / (max - min), -9, 0.5, -9)
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Knob.Text = ""
+    Knob.Parent = Bg
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
 
-    local isMinimized = false
-    minBtn.MouseButton1Click:Connect(function()
-        isMinimized = not isMinimized
-        mainFrame.Size = isMinimized and UDim2.new(0, 210, 0, 30) or UDim2.new(0, 210, 0, 300)
-        for _, child in ipairs(mainFrame:GetChildren()) do
-            if child ~= titleBar then
-                child.Visible = not isMinimized
-            end
-        end
-    end)
-
-    -- ドラッグ機能（タッチ＆マウス対応、強化）
     local dragging = false
-    local dragStartPos, frameStartPos
+    local current = default
 
-    local function onInputBegan(input)
+    local function update(input)
+        local rel = math.clamp((input.Position.X - Bg.AbsolutePosition.X) / Bg.AbsoluteSize.X, 0, 1)
+        current = math.floor(min + (max - min) * rel)
+        Fill.Size = UDim2.new(rel, 0, 1, 0)
+        Knob.Position = UDim2.new(rel, -9, 0.5, -9)
+        Label.Text = name .. ": " .. current
+        callback(current)
+    end
+
+    Knob.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            dragStartPos = input.Position
-            frameStartPos = mainFrame.Position
         end
-    end
+    end)
 
-    local function onInputEnded(input)
+    Bg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            update(input)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            update(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
-    end
-
-    titleBar.InputBegan:Connect(onInputBegan)
-    titleBar.InputEnded:Connect(onInputEnded)
-
-    -- ドラッグ中は毎フレーム位置更新（モバイルで安定）
-    RunService.RenderStepped:Connect(function()
-        if dragging then
-            local mousePos = UserInputService:GetMouseLocation()
-            local delta = mousePos - dragStartPos
-            mainFrame.Position = UDim2.new(
-                frameStartPos.X.Scale,
-                frameStartPos.X.Offset + delta.X,
-                frameStartPos.Y.Scale,
-                frameStartPos.Y.Offset + delta.Y
-            )
-        end
     end)
 
-    -- コンテンツ
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Size = UDim2.new(1, -10, 1, -40)
-    contentFrame.Position = UDim2.new(0, 5, 0, 35)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.Parent = mainFrame
-
-    local function createButton(text, yPos, color, callback)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 35)
-        btn.Position = UDim2.new(0, 0, 0, yPos)
-        btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 90)
-        btn.Text = text
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 15
-        btn.Font = Enum.Font.GothamSemibold
-        btn.BorderSizePixel = 0
-        btn.Parent = contentFrame
-        btn.MouseButton1Click:Connect(callback)
-        return btn
-    end
-
-    -- ESP
-    local espBtn = createButton("ESP: OFF", 0, Color3.fromRGB(80, 40, 40))
-    espBtn.MouseButton1Click:Connect(function()
-        settings.espEnabled = not settings.espEnabled
-        espBtn.Text = settings.espEnabled and "ESP: ON" or "ESP: OFF"
-        espBtn.BackgroundColor3 = settings.espEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-        Notify("ESP", settings.espEnabled and "有効" or "無効", 2)
-        if not settings.espEnabled then clearESP() end
-    end)
-
-    -- Aimbot
-    local aimBtn = createButton("Aimbot: OFF", 40, Color3.fromRGB(80, 40, 40))
-    aimBtn.MouseButton1Click:Connect(function()
-        settings.aimbotEnabled = not settings.aimbotEnabled
-        aimBtn.Text = settings.aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
-        aimBtn.BackgroundColor3 = settings.aimbotEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-        Notify("Aimbot", settings.aimbotEnabled and "有効" or "無効", 2)
-    end)
-
-    -- TPS
-    local tpsBtn = createButton("三人称: OFF", 80, Color3.fromRGB(80, 40, 40))
-    tpsBtn.MouseButton1Click:Connect(function()
-        settings.tpsEnabled = not settings.tpsEnabled
-        tpsBtn.Text = settings.tpsEnabled and "三人称: ON" or "三人称: OFF"
-        tpsBtn.BackgroundColor3 = settings.tpsEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-        Notify("三人称", settings.tpsEnabled and "有効" or "無効", 2)
-        if not settings.tpsEnabled then
-            Camera.CameraType = Enum.CameraType.Fixed
-        end
-    end)
-
-    -- FOV表示
-    local fovLabel = Instance.new("TextLabel")
-    fovLabel.Size = UDim2.new(1, 0, 0, 30)
-    fovLabel.Position = UDim2.new(0, 0, 0, 120)
-    fovLabel.BackgroundTransparency = 1
-    fovLabel.Text = "FOV: " .. tostring(settings.fovValue)
-    fovLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-    fovLabel.TextSize = 16
-    fovLabel.Font = Enum.Font.GothamBold
-    fovLabel.Parent = contentFrame
-
-    local fovMinus = Instance.new("TextButton")
-    fovMinus.Size = UDim2.new(0.4, -5, 0, 30)
-    fovMinus.Position = UDim2.new(0, 0, 0, 155)
-    fovMinus.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-    fovMinus.Text = "－"
-    fovMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
-    fovMinus.TextSize = 18
-    fovMinus.Font = Enum.Font.GothamBold
-    fovMinus.Parent = contentFrame
-
-    local fovPlus = Instance.new("TextButton")
-    fovPlus.Size = UDim2.new(0.4, -5, 0, 30)
-    fovPlus.Position = UDim2.new(0.6, 5, 0, 155)
-    fovPlus.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-    fovPlus.Text = "＋"
-    fovPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
-    fovPlus.TextSize = 18
-    fovPlus.Font = Enum.Font.GothamBold
-    fovPlus.Parent = contentFrame
-
-    local function updateFOVLabel()
-        fovLabel.Text = "FOV: " .. tostring(settings.fovValue)
-        Camera.FieldOfView = settings.fovValue
-    end
-
-    fovMinus.MouseButton1Click:Connect(function()
-        settings.fovValue = math.max(1, settings.fovValue - 5)
-        updateFOVLabel()
-        Notify("FOV", "変更: " .. tostring(settings.fovValue), 1)
-    end)
-
-    fovPlus.MouseButton1Click:Connect(function()
-        settings.fovValue = math.min(120, settings.fovValue + 5)
-        updateFOVLabel()
-        Notify("FOV", "変更: " .. tostring(settings.fovValue), 1)
-    end)
-
-    -- チーム除外
-    local teamBtn = createButton("同チーム除外: ON", 200, Color3.fromRGB(40, 80, 40))
-    teamBtn.MouseButton1Click:Connect(function()
-        settings.teamCheck = not settings.teamCheck
-        teamBtn.Text = settings.teamCheck and "同チーム除外: ON" or "同チーム除外: OFF"
-        teamBtn.BackgroundColor3 = settings.teamCheck and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-        Notify("TeamCheck", settings.teamCheck and "有効" or "無効", 2)
-    end)
-
-    -- 終了時処理
-    playerGui.ChildRemoved:Connect(function(child)
-        if child == screenGui then
-            clearESP()
-            Notify("終了", "スクリプトを停止しました", 2)
-        end
-    end)
-
-    Notify("準備完了", "FPSチートが正常にロードされました", 3)
-
-end) -- pcall 終了
-
--- エラーが発生した場合は通知で表示
-if not success then
-    local StarterGui = game:GetService("StarterGui")
-    StarterGui:SetCore("SendNotification", {
-        Title = "スクリプトエラー",
-        Text = "エラー内容: " .. tostring(err),
-        Duration = 10
-    })
-    -- さらに、エラー内容をクリップボードにコピー（デバッグ用）
-    setclipboard(tostring(err))
-    warn("エラーが発生しました: ", err)
+    callback(default)
+    return Frame
 end
+
+-- ============================================================
+-- 4. ESP / Wallhack System
+-- ============================================================
+local ESP_Enabled = false
+local ESP_Storage = {}
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(0, 50, 0, 80)
+    box.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    box.BackgroundTransparency = 0.65
+    box.BorderSizePixel = 0
+    box.Visible = false
+    box.Parent = ScreenGui
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 3)
+
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(1, 0, 0, 14)
+    nameLbl.Position = UDim2.new(0, 0, 0, -18)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = player.Name
+    nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLbl.TextSize = 11
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.Parent = box
+
+    ESP_Storage[player] = {Box = box, Name = nameLbl}
+end
+
+local function RemoveESP(player)
+    if ESP_Storage[player] then
+        ESP_Storage[player].Box:Destroy()
+        ESP_Storage[player] = nil
+    end
+end
+
+local function UpdateESP()
+    for player, gui in pairs(ESP_Storage) do
+        local char = player.Character
+        if not char then gui.Box.Visible = false continue end
+
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then gui.Box.Visible = false continue end
+
+        local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+        if onScreen and ESP_Enabled then
+            local head = char:FindFirstChild("Head")
+            if head then
+                local headPos = Camera:WorldToViewportPoint(head.Position)
+                local h = math.abs(headPos.Y - pos.Y) * 1.3
+                local w = h * 0.55
+                gui.Box.Size = UDim2.new(0, w, 0, h)
+                gui.Box.Position = UDim2.new(0, pos.X - w / 2, 0, pos.Y - h / 2)
+                gui.Box.Visible = true
+                gui.Box.BackgroundColor3 = (player.Team == LocalPlayer.Team) and Color3.fromRGB(50, 255, 100) or Color3.fromRGB(255, 50, 50)
+            end
+        else
+            gui.Box.Visible = false
+        end
+    end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
+Players.PlayerAdded:Connect(CreateESP)
+Players.PlayerRemoving:Connect(RemoveESP)
+RunService.RenderStepped:Connect(UpdateESP)
+
+-- ============================================================
+-- 5. Aimbot / AutoAim System
+-- ============================================================
+local Aimbot_Enabled = false
+local AimbotConnection = nil
+
+local function GetClosestToCenter()
+    local closest, shortest = nil, math.huge
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local pos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
+            if onScreen then
+                local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                if dist < shortest then
+                    shortest = dist
+                    closest = player
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function ToggleAimbot(state)
+    if state then
+        Notify("Aimbot", "Aimbot Enabled", 2)
+        AimbotConnection = RunService.RenderStepped:Connect(function()
+            if not Aimbot_Enabled then return end
+            local target = GetClosestToCenter()
+            if target and target.Character and target.Character:FindFirstChild("Head") then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+            end
+        end)
+    else
+        Notify("Aimbot", "Aimbot Disabled", 2)
+        if AimbotConnection then AimbotConnection:Disconnect() AimbotConnection = nil end
+    end
+end
+
+-- ============================================================
+-- 6. Third Person System
+-- ============================================================
+local ThirdPerson_Enabled = false
+local ThirdPersonConnection = nil
+
+local function ToggleThirdPerson(state)
+    if state then
+        Notify("Third Person", "Third Person Enabled", 2)
+        ThirdPersonConnection = RunService.RenderStepped:Connect(function()
+            if not ThirdPerson_Enabled then return end
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                Camera.CameraType = Enum.CameraType.Scriptable
+                local hrp = char.HumanoidRootPart
+                Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 3, 10), hrp.Position + Vector3.new(0, 1, 0))
+            end
+        end)
+    else
+        Notify("Third Person", "Third Person Disabled", 2)
+        if ThirdPersonConnection then ThirdPersonConnection:Disconnect() ThirdPersonConnection = nil end
+        Camera.CameraType = Enum.CameraType.Custom
+    end
+end
+
+-- ============================================================
+-- 7. FOV System
+-- ============================================================
+local function SetFOV(val)
+    Camera.FieldOfView = val
+end
+
+-- ============================================================
+-- 8. GUI Controls Binding
+-- ============================================================
+CreateToggle("ESP / Wallhack", function(en)
+    ESP_Enabled = en
+    Notify("ESP", en and "Enabled" or "Disabled", 2)
+end)
+
+CreateToggle("Aimbot", function(en)
+    Aimbot_Enabled = en
+    ToggleAimbot(en)
+end)
+
+CreateToggle("Third Person", function(en)
+    ThirdPerson_Enabled = en
+    ToggleThirdPerson(en)
+end)
+
+CreateSlider("FOV", 30, 120, 70, function(val)
+    SetFOV(val)
+end)
+
+-- ============================================================
+-- 9. Drag & Minimize Logic
+-- ============================================================
+local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+        dragInput = nil
+    end
+end)
+
+local minimized = false
+local originalSize = MainFrame.Size
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 240, 0, 38)}):Play()
+        MinimizeBtn.Text = "+"
+        ContentFrame.Visible = false
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = originalSize}):Play()
+        MinimizeBtn.Text = "−"
+        ContentFrame.Visible = true
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    if AimbotConnection then AimbotConnection:Disconnect() end
+    if ThirdPersonConnection then ThirdPersonConnection:Disconnect() end
+    for _, v in pairs(ESP_Storage) do v.Box:Destroy() end
+    ESP_Storage = {}
+    ScreenGui:Destroy()
+    Notify("Script", "Closed successfully", 2)
+end)
+
+-- ============================================================
+-- 10. Init Complete
+-- ============================================================
+Notify("FPS Cheat", "Script loaded! Tap toggles to enable features.", 4)
