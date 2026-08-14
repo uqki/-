@@ -1,0 +1,484 @@
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+
+--// Notify
+local function Notify(title, text, duration)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = duration
+    })
+end
+
+--// GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FPS_MobileCheat"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+pcall(function()
+    ScreenGui.Parent = game:GetService("CoreGui")
+end)
+if not ScreenGui.Parent then
+    ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "Main"
+MainFrame.Size = UDim2.new(0, 240, 0, 320)
+MainFrame.Position = UDim2.new(0, 15, 0, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 44)
+TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TitleBar.BorderSizePixel = 0
+TitleBar.Active = true
+TitleBar.Parent = MainFrame
+
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -50, 1, 0)
+TitleText.Position = UDim2.new(0, 12, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "FPS Cheat"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 18
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Parent = TitleBar
+
+-- Minimize Button
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 34, 0, 34)
+MinBtn.Position = UDim2.new(1, -39, 0, 5)
+MinBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.TextSize = 22
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.Parent = TitleBar
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 8)
+
+-- Content
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, -20, 1, -54)
+Content.Position = UDim2.new(0, 10, 0, 49)
+Content.BackgroundTransparency = 1
+Content.Parent = MainFrame
+
+--// Toggle Creator
+local function CreateToggle(name, posY, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 48)
+    btn.Position = UDim2.new(0, 0, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    btn.Text = name .. ": OFF"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 16
+    btn.Font = Enum.Font.GothamSemibold
+    btn.AutoButtonColor = true
+    btn.Parent = Content
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    
+    local enabled = false
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        btn.Text = name .. (enabled and ": ON" or ": OFF")
+        btn.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(55, 55, 55)
+        callback(enabled)
+    end)
+    
+    return function() return enabled end
+end
+
+--// Drag (Touch & Mouse)
+local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--// Minimize
+local minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    Content.Visible = not minimized
+    MinBtn.Text = minimized and "+" or "-"
+    MainFrame.Size = minimized and UDim2.new(0, 240, 0, 44) or UDim2.new(0, 240, 0, 320)
+end)
+
+--// Core Variables
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+local ESP_Enabled = false
+local WallHack_Enabled = false
+local Aimbot_Enabled = false
+local TeamCheck = true
+local Aimbot_FOV = 150
+local Aimbot_Smooth = 0.08
+
+--// ESP Storage
+local ESP_Objects = {}
+local Highlights = {}
+
+--// FOV Circle
+local FOV_Circle = Drawing.new("Circle")
+FOV_Circle.Visible = false
+FOV_Circle.Thickness = 1.5
+FOV_Circle.NumSides = 64
+FOV_Circle.Radius = Aimbot_FOV
+FOV_Circle.Filled = false
+FOV_Circle.Color = Color3.fromRGB(255, 255, 255)
+FOV_Circle.Transparency = 0.6
+
+--// Helpers
+local function IsTeammate(player)
+    if not TeamCheck then return false end
+    if not LocalPlayer.Team or not player.Team then return false end
+    return LocalPlayer.Team == player.Team
+end
+
+local function GetChar(player)
+    return player.Character
+end
+
+local function IsAlive(char)
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    return hum and hum.Health > 0
+end
+
+local function W2S(pos)
+    local p, onScreen = Camera:WorldToViewportPoint(pos)
+    return Vector2.new(p.X, p.Y), onScreen, p.Z
+end
+
+--// ESP Creation
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    local t = {
+        Box = Drawing.new("Square"),
+        BoxOutline = Drawing.new("Square"),
+        Name = Drawing.new("Text"),
+        Dist = Drawing.new("Text"),
+        HealthBar = Drawing.new("Square"),
+        HealthOutline = Drawing.new("Square"),
+        Tracer = Drawing.new("Line")
+    }
+    
+    t.Box.Thickness = 1
+    t.Box.Filled = false
+    t.Box.Color = Color3.fromRGB(255, 50, 50)
+    t.Box.Transparency = 1
+    
+    t.BoxOutline.Thickness = 3
+    t.BoxOutline.Filled = false
+    t.BoxOutline.Color = Color3.fromRGB(0, 0, 0)
+    t.BoxOutline.Transparency = 1
+    
+    t.Name.Size = 13
+    t.Name.Center = true
+    t.Name.Outline = true
+    t.Name.Color = Color3.fromRGB(255, 255, 255)
+    
+    t.Dist.Size = 12
+    t.Dist.Center = true
+    t.Dist.Outline = true
+    t.Dist.Color = Color3.fromRGB(200, 200, 200)
+    
+    t.HealthBar.Thickness = 1
+    t.HealthBar.Filled = true
+    
+    t.HealthOutline.Thickness = 1
+    t.HealthOutline.Filled = true
+    t.HealthOutline.Color = Color3.fromRGB(0, 0, 0)
+    
+    t.Tracer.Thickness = 1
+    t.Tracer.Color = Color3.fromRGB(255, 50, 50)
+    
+    ESP_Objects[player] = t
+end
+
+local function RemoveESP(player)
+    local t = ESP_Objects[player]
+    if t then
+        for _, v in pairs(t) do v:Remove() end
+        ESP_Objects[player] = nil
+    end
+end
+
+--// WallHack (Highlight)
+local function CreateHighlight(player)
+    if player == LocalPlayer then return end
+    local hl = Instance.new("Highlight")
+    hl.Name = "WH_" .. player.Name
+    hl.FillColor = Color3.fromRGB(255, 0, 0)
+    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+    hl.FillTransparency = 0.6
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Enabled = false
+    Highlights[player] = hl
+end
+
+local function RemoveHighlight(player)
+    local hl = Highlights[player]
+    if hl then
+        hl:Destroy()
+        Highlights[player] = nil
+    end
+end
+
+--// Update ESP
+local function UpdateESP()
+    for player, obj in pairs(ESP_Objects) do
+        local char = GetChar(player)
+        local head = char and char:FindFirstChild("Head")
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        if ESP_Enabled and char and head and root and hum and IsAlive(char) and not IsTeammate(player) then
+            local headPos, headVis, _ = W2S(head.Position)
+            local rootPos, rootVis, _ = W2S(root.Position)
+            
+            if headVis and rootVis then
+                local h = math.abs(headPos.Y - rootPos.Y) * 1.9
+                local w = h * 0.55
+                local pos = Vector2.new(headPos.X - w / 2, headPos.Y - h * 0.12)
+                
+                obj.Box.Size = Vector2.new(w, h)
+                obj.Box.Position = pos
+                obj.Box.Visible = true
+                
+                obj.BoxOutline.Size = Vector2.new(w, h)
+                obj.BoxOutline.Position = pos
+                obj.BoxOutline.Visible = true
+                
+                obj.Name.Position = Vector2.new(headPos.X, pos.Y - 18)
+                obj.Name.Text = player.Name
+                obj.Name.Visible = true
+                
+                local dist = math.floor((root.Position - Camera.CFrame.Position).Magnitude)
+                obj.Dist.Position = Vector2.new(headPos.X, pos.Y + h + 3)
+                obj.Dist.Text = dist .. "m"
+                obj.Dist.Visible = true
+                
+                local hp = hum.Health / hum.MaxHealth
+                local barH = h * hp
+                obj.HealthBar.Size = Vector2.new(3, barH)
+                obj.HealthBar.Position = Vector2.new(pos.X - 7, pos.Y + (h - barH))
+                obj.HealthBar.Color = Color3.fromRGB(255 * (1 - hp), 255 * hp, 0)
+                obj.HealthBar.Visible = true
+                
+                obj.HealthOutline.Size = Vector2.new(3, h)
+                obj.HealthOutline.Position = Vector2.new(pos.X - 7, pos.Y)
+                obj.HealthOutline.Visible = true
+                
+                obj.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                obj.Tracer.To = Vector2.new(headPos.X, pos.Y + h)
+                obj.Tracer.Visible = true
+            else
+                for _, v in pairs(obj) do v.Visible = false end
+            end
+        else
+            for _, v in pairs(obj) do v.Visible = false end
+        end
+    end
+end
+
+--// Update WallHack
+local function UpdateWallHack()
+    for player, hl in pairs(Highlights) do
+        local char = GetChar(player)
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        if WallHack_Enabled and char and hum and IsAlive(char) and not IsTeammate(player) then
+            hl.Parent = char
+            hl.Enabled = true
+            local hp = hum.Health / hum.MaxHealth
+            hl.FillColor = Color3.fromRGB(255 * (1 - hp), 255 * hp, 0)
+        else
+            hl.Enabled = false
+            hl.Parent = nil
+        end
+    end
+end
+
+--// Aimbot
+local function GetClosestEnemy()
+    local closest, closestDist = nil, Aimbot_FOV
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and not IsTeammate(plr) then
+            local char = GetChar(plr)
+            local head = char and char:FindFirstChild("Head")
+            if head and IsAlive(char) then
+                local pos, onScreen = W2S(head.Position)
+                if onScreen then
+                    local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    if d < closestDist then
+                        closestDist = d
+                        closest = head
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function RunAimbot()
+    if not Aimbot_Enabled then return end
+    local target = GetClosestEnemy()
+    if target then
+        local cf = CFrame.new(Camera.CFrame.Position, target.Position)
+        Camera.CFrame = Camera.CFrame:Lerp(cf, Aimbot_Smooth)
+    end
+end
+
+--// Player Events
+Players.PlayerAdded:Connect(function(p)
+    CreateESP(p)
+    CreateHighlight(p)
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+    RemoveESP(p)
+    RemoveHighlight(p)
+end)
+
+for _, p in ipairs(Players:GetPlayers()) do
+    CreateESP(p)
+    CreateHighlight(p)
+end
+
+--// Render Loop
+RunService.RenderStepped:Connect(function()
+    UpdateESP()
+    UpdateWallHack()
+    RunAimbot()
+    
+    FOV_Circle.Visible = Aimbot_Enabled
+    FOV_Circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FOV_Circle.Radius = Aimbot_FOV
+end)
+
+--// GUI Toggles
+CreateToggle("ESP", 0, function(e)
+    ESP_Enabled = e
+    Notify("FPS Cheat", "ESP " .. (e and "ON" or "OFF"), 2)
+    if not e then
+        for _, obj in pairs(ESP_Objects) do
+            for _, v in pairs(obj) do v.Visible = false end
+        end
+    end
+end)
+
+CreateToggle("WallHack", 56, function(e)
+    WallHack_Enabled = e
+    Notify("FPS Cheat", "WallHack " .. (e and "ON" or "OFF"), 2)
+    if not e then
+        for _, hl in pairs(Highlights) do
+            hl.Enabled = false
+            hl.Parent = nil
+        end
+    end
+end)
+
+CreateToggle("Aimbot", 112, function(e)
+    Aimbot_Enabled = e
+    Notify("FPS Cheat", "Aimbot " .. (e and "ON" or "OFF"), 2)
+end)
+
+--// FOV Button
+local FOVBtn = Instance.new("TextButton")
+FOVBtn.Size = UDim2.new(1, 0, 0, 48)
+FOVBtn.Position = UDim2.new(0, 0, 0, 168)
+FOVBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+FOVBtn.Text = "FOV: " .. Aimbot_FOV
+FOVBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVBtn.TextSize = 16
+FOVBtn.Font = Enum.Font.GothamSemibold
+FOVBtn.Parent = Content
+Instance.new("UICorner", FOVBtn).CornerRadius = UDim.new(0, 8)
+
+FOVBtn.MouseButton1Click:Connect(function()
+    local vals = {100, 150, 200, 250, 300, 400}
+    local curr = Aimbot_FOV
+    local nextVal = vals[1]
+    for i, v in ipairs(vals) do
+        if v == curr then
+            nextVal = vals[i + 1] or vals[1]
+            break
+        end
+    end
+    Aimbot_FOV = nextVal
+    FOVBtn.Text = "FOV: " .. Aimbot_FOV
+    Notify("FPS Cheat", "Aimbot FOV: " .. Aimbot_FOV, 2)
+end)
+
+--// Smooth Button
+local SmoothBtn = Instance.new("TextButton")
+SmoothBtn.Size = UDim2.new(1, 0, 0, 48)
+SmoothBtn.Position = UDim2.new(0, 0, 0, 224)
+SmoothBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+SmoothBtn.Text = "Smooth: " .. tostring(Aimbot_Smooth)
+SmoothBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SmoothBtn.TextSize = 16
+SmoothBtn.Font = Enum.Font.GothamSemibold
+SmoothBtn.Parent = Content
+Instance.new("UICorner", SmoothBtn).CornerRadius = UDim.new(0, 8)
+
+local smooths = {0.03, 0.05, 0.08, 0.12, 0.18, 0.25}
+local sIdx = 3
+
+SmoothBtn.MouseButton1Click:Connect(function()
+    sIdx = sIdx + 1
+    if sIdx > #smooths then sIdx = 1 end
+    Aimbot_Smooth = smooths[sIdx]
+    SmoothBtn.Text = "Smooth: " .. tostring(Aimbot_Smooth)
+    Notify("FPS Cheat", "Smooth: " .. tostring(Aimbot_Smooth), 2)
+end)
+
+--// Loaded
+Notify("FPS Cheat", "Script Loaded! | Mobile Ready", 5)
