@@ -1,484 +1,306 @@
---// Services
+--[[
+  FPS Cheat Script (Mobile Optimized)
+  機能: ESP (WallHack), Aimbot (Visual Target Lock)
+  注意: 視点矯正は一切行いません。ターゲットを自動選択し、赤枠で強調表示します。
+]]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
-local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local Player = Players.LocalPlayer
 
---// Notify
+-- 通知関数 (print代替)
+local StarterGui = game:GetService("StarterGui")
 local function Notify(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title,
         Text = text,
-        Duration = duration
+        Duration = duration or 2
     })
 end
 
---// GUI Setup
+-- 設定 (getgenvで外部からも変更可)
+getgenv().FPSConfig = {
+    ESP = true,
+    Aimbot = true, -- ターゲット自動選択 & 強調表示
+    TeamCheck = true -- 味方を除外
+}
+
+-- GUI作成
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPS_MobileCheat"
+ScreenGui.Name = "FPS_Cheat_GUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+game:GetService("CoreGui"):WaitForChild("RobloxGui"):WaitForChild("Modules"):WaitForChild("Shell"):WaitForChild("TopBar"):WaitForChild("FullScreen"):WaitForChild("Main"):WaitForChild("Left"):WaitForChild("PlayerList"):WaitForChild("_b"):WaitForChild("ScrollingFrame"):WaitForChild("UIListLayout"):WaitForChild("_c")
+-- 上の行は冗長なため、安全な親へ追加
 pcall(function()
     ScreenGui.Parent = game:GetService("CoreGui")
 end)
 if not ScreenGui.Parent then
-    ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 end
 
+-- メインフレーム
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "Main"
-MainFrame.Size = UDim2.new(0, 240, 0, 320)
-MainFrame.Position = UDim2.new(0, 15, 0, 15)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderSizePixel = 0
+MainFrame.Size = UDim2.new(0, 220, 0, 160)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -80)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 1
+MainFrame.BorderColor3 = Color3.fromRGB(0, 150, 255)
 MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-
--- Title Bar
+-- タイトルバー (ドラッグ用)
 local TitleBar = Instance.new("Frame")
-TitleBar.Name = "TitleBar"
-TitleBar.Size = UDim2.new(1, 0, 0, 44)
-TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 TitleBar.BorderSizePixel = 0
-TitleBar.Active = true
 TitleBar.Parent = MainFrame
 
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -30, 1, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "FPS Cheat v1"
+TitleLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 14
+TitleLabel.Parent = TitleBar
 
-local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(1, -50, 1, 0)
-TitleText.Position = UDim2.new(0, 12, 0, 0)
-TitleText.BackgroundTransparency = 1
-TitleText.Text = "FPS Cheat"
-TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleText.TextSize = 18
-TitleText.Font = Enum.Font.GothamBold
-TitleText.TextXAlignment = Enum.TextXAlignment.Left
-TitleText.Parent = TitleBar
-
--- Minimize Button
+-- 最小化ボタン
 local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 34, 0, 34)
-MinBtn.Position = UDim2.new(1, -39, 0, 5)
-MinBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MinBtn.Size = UDim2.new(0, 25, 1, 0)
+MinBtn.Position = UDim2.new(1, -25, 0, 0)
+MinBtn.BackgroundTransparency = 1
 MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.TextSize = 22
-MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
 MinBtn.Parent = TitleBar
-Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 8)
 
--- Content
+-- コンテンツ (トグル類)
 local Content = Instance.new("Frame")
-Content.Name = "Content"
-Content.Size = UDim2.new(1, -20, 1, -54)
-Content.Position = UDim2.new(0, 10, 0, 49)
+Content.Size = UDim2.new(1, 0, 1, -30)
+Content.Position = UDim2.new(0, 0, 0, 30)
 Content.BackgroundTransparency = 1
 Content.Parent = MainFrame
 
---// Toggle Creator
-local function CreateToggle(name, posY, callback)
+local function MakeToggle(parent, y, name, configKey)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 48)
-    btn.Position = UDim2.new(0, 0, 0, posY)
-    btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-    btn.Text = name .. ": OFF"
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 16
-    btn.Font = Enum.Font.GothamSemibold
-    btn.AutoButtonColor = true
-    btn.Parent = Content
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    
-    local enabled = false
+    btn.Size = UDim2.new(0.9, 0, 0, 30)
+    btn.Position = UDim2.new(0.05, 0, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    btn.BorderSizePixel = 0
+    btn.Text = name .. ": ON"
+    btn.TextColor3 = Color3.fromRGB(0, 255, 100)
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextSize = 14
+    btn.Parent = parent
+
     btn.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        btn.Text = name .. (enabled and ": ON" or ": OFF")
-        btn.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(55, 55, 55)
-        callback(enabled)
+        local cfg = getgenv().FPSConfig
+        cfg[configKey] = not cfg[configKey]
+        btn.Text = name .. ": " .. (cfg[configKey] and "ON" or "OFF")
+        btn.TextColor3 = cfg[configKey] and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 80, 80)
+        Notify("Toggle", name .. " " .. (cfg[configKey] and "ON" or "OFF"), 1)
     end)
-    
-    return function() return enabled end
+    return btn
 end
 
---// Drag (Touch & Mouse)
-local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+MakeToggle(Content, 10, "ESP", "ESP")
+MakeToggle(Content, 50, "Aimbot", "Aimbot")
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(0.9, 0, 0, 20)
+statusLabel.Position = UDim2.new(0.05, 0, 0, 95)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Target: None"
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.Font = Enum.Font.GothamMedium
+statusLabel.TextSize = 12
+statusLabel.Parent = Content
 
+-- ドラッグ機能 (モバイル対応)
+local dragData = {dragging = false, startInput = nil, startPos = nil, frameStart = nil}
 TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragData.dragging = true
+        dragData.startInput = input
+        dragData.startPos = input.Position
+        dragData.frameStart = MainFrame.Position
     end
 end)
-
-TitleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
+UIS.InputChanged:Connect(function(input)
+    if dragData.dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragData.startPos
         MainFrame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            dragData.frameStart.X.Scale,
+            dragData.frameStart.X.Offset + delta.X,
+            dragData.frameStart.Y.Scale,
+            dragData.frameStart.Y.Offset + delta.Y
         )
     end
 end)
+UIS.InputEnded:Connect(function(input)
+    if input == dragData.startInput then
+        dragData.dragging = false
+    end
+end)
 
---// Minimize
+-- 最小化機能
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     Content.Visible = not minimized
     MinBtn.Text = minimized and "+" or "-"
-    MainFrame.Size = minimized and UDim2.new(0, 240, 0, 44) or UDim2.new(0, 240, 0, 320)
 end)
 
---// Core Variables
-local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
+-- ESP / Aimbot 描画用プール
+local espObjects = {}
+local targetIndicator = nil
 
-local ESP_Enabled = false
-local WallHack_Enabled = false
-local Aimbot_Enabled = false
-local TeamCheck = true
-local Aimbot_FOV = 150
-local Aimbot_Smooth = 0.08
-
---// ESP Storage
-local ESP_Objects = {}
-local Highlights = {}
-
---// FOV Circle
-local FOV_Circle = Drawing.new("Circle")
-FOV_Circle.Visible = false
-FOV_Circle.Thickness = 1.5
-FOV_Circle.NumSides = 64
-FOV_Circle.Radius = Aimbot_FOV
-FOV_Circle.Filled = false
-FOV_Circle.Color = Color3.fromRGB(255, 255, 255)
-FOV_Circle.Transparency = 0.6
-
---// Helpers
-local function IsTeammate(player)
-    if not TeamCheck then return false end
-    if not LocalPlayer.Team or not player.Team then return false end
-    return LocalPlayer.Team == player.Team
-end
-
-local function GetChar(player)
-    return player.Character
-end
-
-local function IsAlive(char)
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    return hum and hum.Health > 0
-end
-
-local function W2S(pos)
-    local p, onScreen = Camera:WorldToViewportPoint(pos)
-    return Vector2.new(p.X, p.Y), onScreen, p.Z
-end
-
---// ESP Creation
-local function CreateESP(player)
-    if player == LocalPlayer then return end
-    local t = {
-        Box = Drawing.new("Square"),
-        BoxOutline = Drawing.new("Square"),
-        Name = Drawing.new("Text"),
-        Dist = Drawing.new("Text"),
-        HealthBar = Drawing.new("Square"),
-        HealthOutline = Drawing.new("Square"),
-        Tracer = Drawing.new("Line")
-    }
-    
-    t.Box.Thickness = 1
-    t.Box.Filled = false
-    t.Box.Color = Color3.fromRGB(255, 50, 50)
-    t.Box.Transparency = 1
-    
-    t.BoxOutline.Thickness = 3
-    t.BoxOutline.Filled = false
-    t.BoxOutline.Color = Color3.fromRGB(0, 0, 0)
-    t.BoxOutline.Transparency = 1
-    
-    t.Name.Size = 13
-    t.Name.Center = true
-    t.Name.Outline = true
-    t.Name.Color = Color3.fromRGB(255, 255, 255)
-    
-    t.Dist.Size = 12
-    t.Dist.Center = true
-    t.Dist.Outline = true
-    t.Dist.Color = Color3.fromRGB(200, 200, 200)
-    
-    t.HealthBar.Thickness = 1
-    t.HealthBar.Filled = true
-    
-    t.HealthOutline.Thickness = 1
-    t.HealthOutline.Filled = true
-    t.HealthOutline.Color = Color3.fromRGB(0, 0, 0)
-    
-    t.Tracer.Thickness = 1
-    t.Tracer.Color = Color3.fromRGB(255, 50, 50)
-    
-    ESP_Objects[player] = t
-end
-
-local function RemoveESP(player)
-    local t = ESP_Objects[player]
-    if t then
-        for _, v in pairs(t) do v:Remove() end
-        ESP_Objects[player] = nil
-    end
-end
-
---// WallHack (Highlight)
-local function CreateHighlight(player)
-    if player == LocalPlayer then return end
-    local hl = Instance.new("Highlight")
-    hl.Name = "WH_" .. player.Name
-    hl.FillColor = Color3.fromRGB(255, 0, 0)
-    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-    hl.FillTransparency = 0.6
-    hl.OutlineTransparency = 0
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.Enabled = false
-    Highlights[player] = hl
-end
-
-local function RemoveHighlight(player)
-    local hl = Highlights[player]
-    if hl then
-        hl:Destroy()
-        Highlights[player] = nil
-    end
-end
-
---// Update ESP
-local function UpdateESP()
-    for player, obj in pairs(ESP_Objects) do
-        local char = GetChar(player)
-        local head = char and char:FindFirstChild("Head")
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        if ESP_Enabled and char and head and root and hum and IsAlive(char) and not IsTeammate(player) then
-            local headPos, headVis, _ = W2S(head.Position)
-            local rootPos, rootVis, _ = W2S(root.Position)
-            
-            if headVis and rootVis then
-                local h = math.abs(headPos.Y - rootPos.Y) * 1.9
-                local w = h * 0.55
-                local pos = Vector2.new(headPos.X - w / 2, headPos.Y - h * 0.12)
-                
-                obj.Box.Size = Vector2.new(w, h)
-                obj.Box.Position = pos
-                obj.Box.Visible = true
-                
-                obj.BoxOutline.Size = Vector2.new(w, h)
-                obj.BoxOutline.Position = pos
-                obj.BoxOutline.Visible = true
-                
-                obj.Name.Position = Vector2.new(headPos.X, pos.Y - 18)
-                obj.Name.Text = player.Name
-                obj.Name.Visible = true
-                
-                local dist = math.floor((root.Position - Camera.CFrame.Position).Magnitude)
-                obj.Dist.Position = Vector2.new(headPos.X, pos.Y + h + 3)
-                obj.Dist.Text = dist .. "m"
-                obj.Dist.Visible = true
-                
-                local hp = hum.Health / hum.MaxHealth
-                local barH = h * hp
-                obj.HealthBar.Size = Vector2.new(3, barH)
-                obj.HealthBar.Position = Vector2.new(pos.X - 7, pos.Y + (h - barH))
-                obj.HealthBar.Color = Color3.fromRGB(255 * (1 - hp), 255 * hp, 0)
-                obj.HealthBar.Visible = true
-                
-                obj.HealthOutline.Size = Vector2.new(3, h)
-                obj.HealthOutline.Position = Vector2.new(pos.X - 7, pos.Y)
-                obj.HealthOutline.Visible = true
-                
-                obj.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                obj.Tracer.To = Vector2.new(headPos.X, pos.Y + h)
-                obj.Tracer.Visible = true
-            else
-                for _, v in pairs(obj) do v.Visible = false end
-            end
-        else
-            for _, v in pairs(obj) do v.Visible = false end
-        end
-    end
-end
-
---// Update WallHack
-local function UpdateWallHack()
-    for player, hl in pairs(Highlights) do
-        local char = GetChar(player)
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        if WallHack_Enabled and char and hum and IsAlive(char) and not IsTeammate(player) then
-            hl.Parent = char
-            hl.Enabled = true
-            local hp = hum.Health / hum.MaxHealth
-            hl.FillColor = Color3.fromRGB(255 * (1 - hp), 255 * hp, 0)
-        else
-            hl.Enabled = false
-            hl.Parent = nil
-        end
-    end
-end
-
---// Aimbot
+-- ターゲット選択 (視点矯正なし)
 local function GetClosestEnemy()
-    local closest, closestDist = nil, Aimbot_FOV
-    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    
+    local closest = nil
+    local closestDist = math.huge
+    local myTeam = Player.Team
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and not IsTeammate(plr) then
-            local char = GetChar(plr)
-            local head = char and char:FindFirstChild("Head")
-            if head and IsAlive(char) then
-                local pos, onScreen = W2S(head.Position)
-                if onScreen then
-                    local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                    if d < closestDist then
-                        closestDist = d
-                        closest = head
-                    end
-                end
-            end
+        if plr == Player then continue end
+        local char = plr.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then continue end
+        if char.Humanoid.Health <= 0 then continue end
+        if getgenv().FPSConfig.TeamCheck and plr.Team == myTeam then continue end
+        
+        local root = char.HumanoidRootPart
+        local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+        if not onScreen then 
+            -- 画面外でも距離計算のために続行（壁越えターゲット用）
+        end
+        local dist = (root.Position - Camera.CFrame.Position).magnitude
+        if dist < closestDist then
+            closestDist = dist
+            closest = plr
         end
     end
     return closest
 end
 
-local function RunAimbot()
-    if not Aimbot_Enabled then return end
-    local target = GetClosestEnemy()
-    if target then
-        local cf = CFrame.new(Camera.CFrame.Position, target.Position)
-        Camera.CFrame = Camera.CFrame:Lerp(cf, Aimbot_Smooth)
-    end
-end
-
---// Player Events
-Players.PlayerAdded:Connect(function(p)
-    CreateESP(p)
-    CreateHighlight(p)
-end)
-
-Players.PlayerRemoving:Connect(function(p)
-    RemoveESP(p)
-    RemoveHighlight(p)
-end)
-
-for _, p in ipairs(Players:GetPlayers()) do
-    CreateESP(p)
-    CreateHighlight(p)
-end
-
---// Render Loop
+-- メインループ
 RunService.RenderStepped:Connect(function()
-    UpdateESP()
-    UpdateWallHack()
-    RunAimbot()
-    
-    FOV_Circle.Visible = Aimbot_Enabled
-    FOV_Circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    FOV_Circle.Radius = Aimbot_FOV
-end)
+    local config = getgenv().FPSConfig
+    local espEnabled = config.ESP
+    local aimbotEnabled = config.Aimbot
 
---// GUI Toggles
-CreateToggle("ESP", 0, function(e)
-    ESP_Enabled = e
-    Notify("FPS Cheat", "ESP " .. (e and "ON" or "OFF"), 2)
-    if not e then
-        for _, obj in pairs(ESP_Objects) do
-            for _, v in pairs(obj) do v.Visible = false end
+    -- 現在のターゲットを更新
+    local target = nil
+    if aimbotEnabled then
+        target = GetClosestEnemy()
+    end
+
+    -- ステータス更新
+    statusLabel.Text = target and ("Target: " .. target.Name) or "Target: None"
+    statusLabel.TextColor3 = target and Color3.fromRGB(255, 200, 0) or Color3.fromRGB(200, 200, 200)
+
+    -- 描画オブジェクトのクリーンアップ管理
+    local activePlayers = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == Player then continue end
+        local char = plr.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
+        if char.Humanoid.Health <= 0 then continue end
+        if config.TeamCheck and plr.Team == Player.Team then continue end
+        activePlayers[plr] = true
+
+        local root = char.HumanoidRootPart
+        local head = char:FindFirstChild("Head") or root
+        local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+        local headPos, _ = Camera:WorldToViewportPoint(head.Position)
+
+        -- データ保存
+        local data = espObjects[plr]
+        if not data then
+            data = {}
+            -- Box
+            local box = Instance.new("Frame")
+            box.BackgroundTransparency = 0.7
+            box.BorderSizePixel = 2
+            box.BorderColor3 = Color3.fromRGB(0, 200, 255)
+            box.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            box.Visible = false
+            box.Parent = ScreenGui
+
+            -- Name
+            local nameLbl = Instance.new("TextLabel")
+            nameLbl.BackgroundTransparency = 1
+            nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLbl.TextStrokeTransparency = 0.5
+            nameLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            nameLbl.Font = Enum.Font.GothamBold
+            nameLbl.TextSize = 12
+            nameLbl.Text = plr.Name
+            nameLbl.Visible = false
+            nameLbl.Parent = ScreenGui
+
+            data.Box = box
+            data.NameLbl = nameLbl
+            espObjects[plr] = data
+        end
+
+        -- サイズ計算 (頭と足で箱を作る)
+        local footPos, _ = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
+        local height = math.abs(headPos.Y - footPos.Y)
+        local width = height * 0.5
+        local centerX = pos.X
+        local topY = math.min(headPos.Y, footPos.Y) - height * 0.1
+
+        -- ESP表示
+        if espEnabled and onScreen then
+            data.Box.Visible = true
+            data.Box.Size = UDim2.new(0, width, 0, height)
+            data.Box.Position = UDim2.new(0, centerX - width/2, 0, topY)
+
+            -- ターゲットなら赤枠＋太枠、それ以外は青
+            if target and plr == target then
+                data.Box.BorderColor3 = Color3.fromRGB(255, 50, 50)
+                data.Box.BorderSizePixel = 3
+                data.Box.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                data.Box.BackgroundTransparency = 0.8
+            else
+                data.Box.BorderColor3 = Color3.fromRGB(0, 200, 255)
+                data.Box.BorderSizePixel = 2
+                data.Box.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                data.Box.BackgroundTransparency = 0.7
+            end
+
+            data.NameLbl.Visible = true
+            data.NameLbl.Size = UDim2.new(0, width + 10, 0, 16)
+            data.NameLbl.Position = UDim2.new(0, centerX - (width + 10)/2, 0, topY - 16)
+        else
+            data.Box.Visible = false
+            data.NameLbl.Visible = false
+        end
+    end
+
+    -- 非アクティブなプレイヤーのオブジェクトを非表示
+    for plr, data in pairs(espObjects) do
+        if not activePlayers[plr] then
+            data.Box.Visible = false
+            data.NameLbl.Visible = false
         end
     end
 end)
 
-CreateToggle("WallHack", 56, function(e)
-    WallHack_Enabled = e
-    Notify("FPS Cheat", "WallHack " .. (e and "ON" or "OFF"), 2)
-    if not e then
-        for _, hl in pairs(Highlights) do
-            hl.Enabled = false
-            hl.Parent = nil
-        end
+-- プレイヤー退出時のクリーンアップ
+Players.PlayerRemoving:Connect(function(plr)
+    local data = espObjects[plr]
+    if data then
+        data.Box:Destroy()
+        data.NameLbl:Destroy()
+        espObjects[plr] = nil
     end
 end)
 
-CreateToggle("Aimbot", 112, function(e)
-    Aimbot_Enabled = e
-    Notify("FPS Cheat", "Aimbot " .. (e and "ON" or "OFF"), 2)
-end)
+Notify("FPS Cheat", "Loaded successfully! (Mobile)", 3)
+Notify("Info", "ESP / Aimbot(Visual Lock) Enabled", 2)
 
---// FOV Button
-local FOVBtn = Instance.new("TextButton")
-FOVBtn.Size = UDim2.new(1, 0, 0, 48)
-FOVBtn.Position = UDim2.new(0, 0, 0, 168)
-FOVBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-FOVBtn.Text = "FOV: " .. Aimbot_FOV
-FOVBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-FOVBtn.TextSize = 16
-FOVBtn.Font = Enum.Font.GothamSemibold
-FOVBtn.Parent = Content
-Instance.new("UICorner", FOVBtn).CornerRadius = UDim.new(0, 8)
-
-FOVBtn.MouseButton1Click:Connect(function()
-    local vals = {100, 150, 200, 250, 300, 400}
-    local curr = Aimbot_FOV
-    local nextVal = vals[1]
-    for i, v in ipairs(vals) do
-        if v == curr then
-            nextVal = vals[i + 1] or vals[1]
-            break
-        end
-    end
-    Aimbot_FOV = nextVal
-    FOVBtn.Text = "FOV: " .. Aimbot_FOV
-    Notify("FPS Cheat", "Aimbot FOV: " .. Aimbot_FOV, 2)
-end)
-
---// Smooth Button
-local SmoothBtn = Instance.new("TextButton")
-SmoothBtn.Size = UDim2.new(1, 0, 0, 48)
-SmoothBtn.Position = UDim2.new(0, 0, 0, 224)
-SmoothBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-SmoothBtn.Text = "Smooth: " .. tostring(Aimbot_Smooth)
-SmoothBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SmoothBtn.TextSize = 16
-SmoothBtn.Font = Enum.Font.GothamSemibold
-SmoothBtn.Parent = Content
-Instance.new("UICorner", SmoothBtn).CornerRadius = UDim.new(0, 8)
-
-local smooths = {0.03, 0.05, 0.08, 0.12, 0.18, 0.25}
-local sIdx = 3
-
-SmoothBtn.MouseButton1Click:Connect(function()
-    sIdx = sIdx + 1
-    if sIdx > #smooths then sIdx = 1 end
-    Aimbot_Smooth = smooths[sIdx]
-    SmoothBtn.Text = "Smooth: " .. tostring(Aimbot_Smooth)
-    Notify("FPS Cheat", "Smooth: " .. tostring(Aimbot_Smooth), 2)
-end)
-
---// Loaded
-Notify("FPS Cheat", "Script Loaded! | Mobile Ready", 5)
+-- setclipboard 使用例 (任意)
+setclipboard("FPS Cheat Script Loaded")
