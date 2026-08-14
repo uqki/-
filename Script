@@ -1,451 +1,452 @@
---==================== FPS チートスクリプト (モバイル最適化) ====================
--- 注意: すべてのExecutor APIを積極活用し、printの代わりに通知を使用
+--==================== FPS チートスクリプト (モバイル最適化・修正版) ====================
+-- すべてのAPIを活用し、エラーがあれば通知で報告
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local Camera = Workspace.CurrentCamera
-local StarterGui = game:GetService("StarterGui")
+local success, err = pcall(function()
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local Workspace = game:GetService("Workspace")
+    local StarterGui = game:GetService("StarterGui")
+    local Camera = Workspace.CurrentCamera
 
--- 通知関数 (ルール9準拠)
-local function Notify(title, text, duration)
-    StarterGui:SetCore("SendNotification", {
-        Title = title,
-        Text = text,
-        Duration = duration or 3
-    })
-end
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
 
--- Executor情報を表示 (API使用)
-local executorInfo = identifyexecutor()
-Notify("Executor", executorInfo.name .. " v" .. executorInfo.version, 3)
-
---==================== 設定変数 ====================
-local settings = {
-    espEnabled = false,
-    aimbotEnabled = false,
-    tpsEnabled = false,
-    fovValue = 70,
-    aimFovLimit = 120, -- エイムボットの有効FOV範囲(度数)
-    teamCheck = true,  -- 同チームを除外する
-}
-
---==================== 描画APIの取得 (getrenv経由) ====================
-local Drawing = getrenv().Drawing or Drawing
-if not Drawing then
-    Notify("Error", "このExecutorはDrawingをサポートしていません", 5)
-    return
-end
-
---==================== ESP管理テーブル ====================
-local espData = {} -- [Player] = { box, text, line }
-
-local function clearESP()
-    for _, data in pairs(espData) do
-        if data.box then data.box:Remove() end
-        if data.text then data.text:Remove() end
-        if data.line then data.line:Remove() end
-    end
-    espData = {}
-end
-
-local function updateESP()
-    if not settings.espEnabled then
-        clearESP()
-        return
+    -- 通知関数
+    local function Notify(title, text, duration)
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 3
+        })
     end
 
-    local currentPlayers = Players:GetPlayers()
-    local newData = {}
+    -- Executor情報表示
+    local executor = identifyexecutor()
+    Notify("Executor", executor.name .. " v" .. executor.version, 3)
 
-    for _, plr in ipairs(currentPlayers) do
-        if plr == player then continue end
-        
-        -- チームチェック
-        if settings.teamCheck and plr.Team and player.Team and plr.Team == player.Team then
-            continue
-        end
-
-        local char = plr.Character
-        if not char then continue end
-        local head = char:FindFirstChild("Head")
-        if not head then continue end
-
-        local headPos = head.Position
-        local rootPos = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or headPos - Vector3.new(0, 2, 0)
-        
-        -- 画面座標へ変換
-        local headScreen, onScreen1 = Camera:WorldToScreenPoint(headPos)
-        local rootScreen, onScreen2 = Camera:WorldToScreenPoint(rootPos)
-        
-        if not onScreen1 and not onScreen2 then
-            -- オフスクリーンでも一応オブジェクトは保持するが非表示にする
-            if espData[plr] then
-                espData[plr].box.Visible = false
-                espData[plr].text.Visible = false
-                espData[plr].line.Visible = false
-            end
-            newData[plr] = espData[plr]
-            continue
-        end
-
-        local height = math.abs(headScreen.Y - rootScreen.Y)
-        local width = height * 0.6
-        local topLeft = Vector2.new(headScreen.X - width/2, headScreen.Y)
-
-        -- 既存データが無ければ新規作成
-        local data = espData[plr]
-        if not data then
-            local box = Drawing.new("Box")
-            box.Thickness = 1.5
-            box.Color = Color3.fromRGB(255, 50, 50)
-            box.Filled = false
-            box.Transparency = 0.8
-
-            local text = Drawing.new("Text")
-            text.Text = plr.Name
-            text.Size = 14
-            text.Color = Color3.fromRGB(255, 255, 255)
-            text.Center = true
-            text.Outlined = true
-            text.OutlineColor = Color3.fromRGB(0, 0, 0)
-
-            local line = Drawing.new("Line")
-            line.Thickness = 1
-            line.Color = Color3.fromRGB(255, 255, 0)
-            line.Transparency = 0.5
-
-            data = { box = box, text = text, line = line }
-        end
-
-        -- 位置更新
-        data.box.Visible = true
-        data.box.Size = Vector2.new(width, height)
-        data.box.Position = topLeft
-
-        data.text.Visible = true
-        data.text.Position = Vector2.new(headScreen.X, headScreen.Y - 25)
-        data.text.Text = plr.Name
-
-        data.line.Visible = true
-        data.line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-        data.line.To = Vector2.new(headScreen.X, headScreen.Y)
-
-        newData[plr] = data
+    --==================== Drawing API 確認 ====================
+    local Drawing = getrenv().Drawing or Drawing
+    local hasDrawing = (Drawing and type(Drawing.new) == "function")
+    if not hasDrawing then
+        Notify("警告", "Drawingが利用できないため、ESPはテキストのみ表示", 5)
     end
 
-    -- 使われなくなったデータを削除
-    for plr, data in pairs(espData) do
-        if not newData[plr] then
+    --==================== 設定 ====================
+    local settings = {
+        espEnabled = false,
+        aimbotEnabled = false,
+        tpsEnabled = false,
+        fovValue = 70,
+        aimFovLimit = 120,
+        teamCheck = true,
+    }
+
+    --==================== ESP（テキスト＋オプションでボックス） ====================
+    local espData = {}
+
+    local function clearESP()
+        for _, data in pairs(espData) do
             if data.box then data.box:Remove() end
             if data.text then data.text:Remove() end
             if data.line then data.line:Remove() end
         end
-    end
-    espData = newData
-end
-
---==================== エイムボット ====================
-local function getClosestPlayer()
-    local cameraPos = Camera.CFrame.Position
-    local closest = nil
-    local closestDist = math.huge
-
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == player then continue end
-        if settings.teamCheck and plr.Team and player.Team and plr.Team == player.Team then
-            continue
-        end
-
-        local char = plr.Character
-        if not char then continue end
-        local head = char:FindFirstChild("Head")
-        if not head then continue end
-
-        local headPos = head.Position
-        local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
-        if not onScreen then continue end
-
-        -- FOV制限 (画面中央からの距離で計算)
-        local center = Camera.ViewportSize / 2
-        local delta = Vector2.new(screenPos.X - center.X, screenPos.Y - center.Y)
-        local magnitude = delta.Magnitude
-        
-        -- 画面サイズに基づいてFOVを度数に変換 (簡易)
-        local fovRad = math.rad(settings.aimFovLimit)
-        local maxDist = math.tan(fovRad) * Camera.ViewportSize.Y / 2
-        if magnitude > maxDist then continue end
-
-        local dist = (headPos - cameraPos).Magnitude
-        if dist < closestDist then
-            closestDist = dist
-            closest = plr
-        end
+        espData = {}
     end
 
-    return closest
-end
+    local function updateESP()
+        if not settings.espEnabled then
+            clearESP()
+            return
+        end
 
-local function updateAimbot()
-    if not settings.aimbotEnabled then return end
+        local currentPlayers = Players:GetPlayers()
+        local newData = {}
 
-    local target = getClosestPlayer()
-    if not target then return end
+        for _, plr in ipairs(currentPlayers) do
+            if plr == player then continue end
+            if settings.teamCheck and plr.Team and player.Team and plr.Team == player.Team then continue end
 
-    local head = target.Character and target.Character:FindFirstChild("Head")
-    if not head then return end
+            local char = plr.Character
+            if not char then continue end
+            local head = char:FindFirstChild("Head")
+            if not head then continue end
 
-    local targetPos = head.Position
-    local cameraPos = Camera.CFrame.Position
-    
-    -- カメラを目標に向ける
-    Camera.CFrame = CFrame.lookAt(cameraPos, targetPos)
-end
+            local headPos = head.Position
+            local rootPos = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or headPos - Vector3.new(0, 2, 0)
+            local headScreen, onScreen1 = Camera:WorldToScreenPoint(headPos)
+            local rootScreen, onScreen2 = Camera:WorldToScreenPoint(rootPos)
 
---==================== 三人称視点 ====================
-local function updateTPS()
-    if settings.tpsEnabled then
-        local char = player.Character
-        if not char then return end
-        local head = char:FindFirstChild("Head")
+            -- 画面外でもデータは保持（visible=false）
+            local data = espData[plr]
+            if not data then
+                -- テキストは必ず作成
+                local text = Drawing and Drawing.new("Text")
+                if text then
+                    text.Text = plr.Name
+                    text.Size = 14
+                    text.Color = Color3.fromRGB(255, 255, 255)
+                    text.Center = true
+                    text.Outlined = true
+                    text.OutlineColor = Color3.fromRGB(0, 0, 0)
+                end
+
+                -- ボックスと線はDrawingがあれば作成
+                local box, line
+                if hasDrawing then
+                    box = Drawing.new("Box")
+                    box.Thickness = 1.5
+                    box.Color = Color3.fromRGB(255, 50, 50)
+                    box.Filled = false
+                    box.Transparency = 0.8
+
+                    line = Drawing.new("Line")
+                    line.Thickness = 1
+                    line.Color = Color3.fromRGB(255, 255, 0)
+                    line.Transparency = 0.5
+                end
+
+                data = { text = text, box = box, line = line }
+            end
+
+            -- 位置更新
+            if data.text then
+                data.text.Visible = true
+                data.text.Position = Vector2.new(headScreen.X, headScreen.Y - 25)
+                data.text.Text = plr.Name
+            end
+
+            if onScreen1 and onScreen2 then
+                local height = math.abs(headScreen.Y - rootScreen.Y)
+                local width = height * 0.6
+                local topLeft = Vector2.new(headScreen.X - width/2, headScreen.Y)
+
+                if data.box then
+                    data.box.Visible = true
+                    data.box.Size = Vector2.new(width, height)
+                    data.box.Position = topLeft
+                end
+
+                if data.line then
+                    data.line.Visible = true
+                    data.line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    data.line.To = Vector2.new(headScreen.X, headScreen.Y)
+                end
+            else
+                if data.box then data.box.Visible = false end
+                if data.line then data.line.Visible = false end
+            end
+
+            newData[plr] = data
+        end
+
+        -- 削除処理
+        for plr, data in pairs(espData) do
+            if not newData[plr] then
+                if data.box then data.box:Remove() end
+                if data.text then data.text:Remove() end
+                if data.line then data.line:Remove() end
+            end
+        end
+        espData = newData
+    end
+
+    --==================== エイムボット ====================
+    local function getClosestPlayer()
+        local cameraPos = Camera.CFrame.Position
+        local closest = nil
+        local closestDist = math.huge
+
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr == player then continue end
+            if settings.teamCheck and plr.Team and player.Team and plr.Team == player.Team then continue end
+
+            local char = plr.Character
+            if not char then continue end
+            local head = char:FindFirstChild("Head")
+            if not head then continue end
+
+            local headPos = head.Position
+            local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+            if not onScreen then continue end
+
+            local center = Camera.ViewportSize / 2
+            local delta = Vector2.new(screenPos.X - center.X, screenPos.Y - center.Y)
+            local magnitude = delta.Magnitude
+            local fovRad = math.rad(settings.aimFovLimit)
+            local maxDist = math.tan(fovRad) * Camera.ViewportSize.Y / 2
+            if magnitude > maxDist then continue end
+
+            local dist = (headPos - cameraPos).Magnitude
+            if dist < closestDist then
+                closestDist = dist
+                closest = plr
+            end
+        end
+
+        return closest
+    end
+
+    local function updateAimbot()
+        if not settings.aimbotEnabled then return end
+        local target = getClosestPlayer()
+        if not target then return end
+        local head = target.Character and target.Character:FindFirstChild("Head")
         if not head then return end
 
-        local headPos = head.Position
-        local offset = CFrame.new(headPos) * CFrame.new(0, 1.5, 8) -- 後方8単位、頭上1.5単位
-        
-        Camera.CameraType = Enum.CameraType.Custom
-        Camera.CFrame = offset
-    else
-        -- デフォルト視点に復帰 (キャラクター追従)
-        if Camera.CameraType ~= Enum.CameraType.Fixed then
+        local targetPos = head.Position
+        local cameraPos = Camera.CFrame.Position
+        Camera.CFrame = CFrame.lookAt(cameraPos, targetPos)
+    end
+
+    --==================== 三人称 ====================
+    local function updateTPS()
+        if settings.tpsEnabled then
+            local char = player.Character
+            if not char then return end
+            local head = char:FindFirstChild("Head")
+            if not head then return end
+            local headPos = head.Position
+            local offset = CFrame.new(headPos) * CFrame.new(0, 1.5, 8)
+            Camera.CameraType = Enum.CameraType.Custom
+            Camera.CFrame = offset
+        else
+            if Camera.CameraType ~= Enum.CameraType.Fixed then
+                Camera.CameraType = Enum.CameraType.Fixed
+            end
+        end
+    end
+
+    --==================== メインループ ====================
+    RunService.RenderStepped:Connect(function()
+        Camera.FieldOfView = settings.fovValue
+        updateESP()
+        updateAimbot()
+        updateTPS()
+    end)
+
+    --==================== UI作成 ====================
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "FPS_Cheat_UI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 210, 0, 300)
+    mainFrame.Position = UDim2.new(0.5, -105, 0.5, -150)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    mainFrame.BackgroundTransparency = 0.15
+    mainFrame.BorderSizePixel = 1
+    mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 255)
+    mainFrame.Active = true
+    mainFrame.Parent = screenGui
+
+    -- タイトルバー
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
+    titleBar.BackgroundTransparency = 0.3
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "⚡ FPS Cheat"
+    titleLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 16
+    titleLabel.Parent = titleBar
+
+    local minBtn = Instance.new("TextButton")
+    minBtn.Size = UDim2.new(0, 30, 1, 0)
+    minBtn.Position = UDim2.new(1, -30, 0, 0)
+    minBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 100)
+    minBtn.Text = "─"
+    minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minBtn.TextSize = 18
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.Parent = titleBar
+
+    local isMinimized = false
+    minBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        mainFrame.Size = isMinimized and UDim2.new(0, 210, 0, 30) or UDim2.new(0, 210, 0, 300)
+        for _, child in ipairs(mainFrame:GetChildren()) do
+            if child ~= titleBar then
+                child.Visible = not isMinimized
+            end
+        end
+    end)
+
+    -- ドラッグ機能（タッチ＆マウス対応、強化）
+    local dragging = false
+    local dragStartPos, frameStartPos
+
+    local function onInputBegan(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStartPos = input.Position
+            frameStartPos = mainFrame.Position
+        end
+    end
+
+    local function onInputEnded(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end
+
+    titleBar.InputBegan:Connect(onInputBegan)
+    titleBar.InputEnded:Connect(onInputEnded)
+
+    -- ドラッグ中は毎フレーム位置更新（モバイルで安定）
+    RunService.RenderStepped:Connect(function()
+        if dragging then
+            local mousePos = UserInputService:GetMouseLocation()
+            local delta = mousePos - dragStartPos
+            mainFrame.Position = UDim2.new(
+                frameStartPos.X.Scale,
+                frameStartPos.X.Offset + delta.X,
+                frameStartPos.Y.Scale,
+                frameStartPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    -- コンテンツ
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, -10, 1, -40)
+    contentFrame.Position = UDim2.new(0, 5, 0, 35)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = mainFrame
+
+    local function createButton(text, yPos, color, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 35)
+        btn.Position = UDim2.new(0, 0, 0, yPos)
+        btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 90)
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextSize = 15
+        btn.Font = Enum.Font.GothamSemibold
+        btn.BorderSizePixel = 0
+        btn.Parent = contentFrame
+        btn.MouseButton1Click:Connect(callback)
+        return btn
+    end
+
+    -- ESP
+    local espBtn = createButton("ESP: OFF", 0, Color3.fromRGB(80, 40, 40))
+    espBtn.MouseButton1Click:Connect(function()
+        settings.espEnabled = not settings.espEnabled
+        espBtn.Text = settings.espEnabled and "ESP: ON" or "ESP: OFF"
+        espBtn.BackgroundColor3 = settings.espEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
+        Notify("ESP", settings.espEnabled and "有効" or "無効", 2)
+        if not settings.espEnabled then clearESP() end
+    end)
+
+    -- Aimbot
+    local aimBtn = createButton("Aimbot: OFF", 40, Color3.fromRGB(80, 40, 40))
+    aimBtn.MouseButton1Click:Connect(function()
+        settings.aimbotEnabled = not settings.aimbotEnabled
+        aimBtn.Text = settings.aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
+        aimBtn.BackgroundColor3 = settings.aimbotEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
+        Notify("Aimbot", settings.aimbotEnabled and "有効" or "無効", 2)
+    end)
+
+    -- TPS
+    local tpsBtn = createButton("三人称: OFF", 80, Color3.fromRGB(80, 40, 40))
+    tpsBtn.MouseButton1Click:Connect(function()
+        settings.tpsEnabled = not settings.tpsEnabled
+        tpsBtn.Text = settings.tpsEnabled and "三人称: ON" or "三人称: OFF"
+        tpsBtn.BackgroundColor3 = settings.tpsEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
+        Notify("三人称", settings.tpsEnabled and "有効" or "無効", 2)
+        if not settings.tpsEnabled then
             Camera.CameraType = Enum.CameraType.Fixed
-            -- Fixedにすると自動でキャラを追う
         end
-    end
-end
+    end)
 
---==================== メインループ (RenderStepped) ====================
-RunService.RenderStepped:Connect(function()
-    -- FOV適用 (常時)
-    Camera.FieldOfView = settings.fovValue
-
-    -- ESP更新
-    updateESP()
-
-    -- エイムボット更新
-    updateAimbot()
-
-    -- 三人称更新
-    updateTPS()
-end)
-
---==================== UI作成 (モバイル向けシンプルGUI) ====================
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FPS_Cheat_UI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
-
--- メインフレーム
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 210, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -105, 0.5, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-mainFrame.BackgroundTransparency = 0.15
-mainFrame.BorderSizePixel = 1
-mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 255)
-mainFrame.Active = true
-mainFrame.Parent = screenGui
-
--- タイトルバー (ドラッグ用)
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 30)
-titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-titleBar.BackgroundTransparency = 0.3
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "⚡ FPS Cheat"
-titleLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 16
-titleLabel.Parent = titleBar
-
--- 最小化ボタン
-local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 30, 1, 0)
-minBtn.Position = UDim2.new(1, -30, 0, 0)
-minBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 100)
-minBtn.Text = "─"
-minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minBtn.TextSize = 18
-minBtn.Font = Enum.Font.GothamBold
-minBtn.Parent = titleBar
-
-local isMinimized = false
-minBtn.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    mainFrame.Size = isMinimized and UDim2.new(0, 210, 0, 30) or UDim2.new(0, 210, 0, 300)
-    for _, child in ipairs(mainFrame:GetChildren()) do
-        if child ~= titleBar then
-            child.Visible = not isMinimized
-        end
-    end
-end)
-
--- ドラッグ機能 (モバイルタッチ対応)
-local dragInfo = { dragging = false, startPos = nil, frameStart = nil }
-
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragInfo.dragging = true
-        dragInfo.startPos = input.Position
-        dragInfo.frameStart = mainFrame.Position
-    end
-end)
-
-titleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragInfo.dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragInfo.dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragInfo.startPos
-        mainFrame.Position = UDim2.new(
-            dragInfo.frameStart.X.Scale,
-            dragInfo.frameStart.X.Offset + delta.X,
-            dragInfo.frameStart.Y.Scale,
-            dragInfo.frameStart.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- コンテンツ配置用 (スクロールなどは省略、シンプルに縦並び)
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, -10, 1, -40)
-contentFrame.Position = UDim2.new(0, 5, 0, 35)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = mainFrame
-
-local function createButton(text, yPos, color, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.Position = UDim2.new(0, 0, 0, yPos)
-    btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 90)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 15
-    btn.Font = Enum.Font.GothamSemibold
-    btn.BorderSizePixel = 0
-    btn.Parent = contentFrame
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
--- ESP トグル
-local espBtn = createButton("ESP: OFF", 0, Color3.fromRGB(80, 40, 40))
-espBtn.MouseButton1Click:Connect(function()
-    settings.espEnabled = not settings.espEnabled
-    espBtn.Text = settings.espEnabled and "ESP: ON" or "ESP: OFF"
-    espBtn.BackgroundColor3 = settings.espEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-    Notify("ESP", settings.espEnabled and "有効" or "無効", 2)
-    if not settings.espEnabled then clearESP() end
-end)
-
--- Aimbot トグル
-local aimBtn = createButton("Aimbot: OFF", 40, Color3.fromRGB(80, 40, 40))
-aimBtn.MouseButton1Click:Connect(function()
-    settings.aimbotEnabled = not settings.aimbotEnabled
-    aimBtn.Text = settings.aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
-    aimBtn.BackgroundColor3 = settings.aimbotEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-    Notify("Aimbot", settings.aimbotEnabled and "有効" or "無効", 2)
-end)
-
--- TPS トグル
-local tpsBtn = createButton("三人称: OFF", 80, Color3.fromRGB(80, 40, 40))
-tpsBtn.MouseButton1Click:Connect(function()
-    settings.tpsEnabled = not settings.tpsEnabled
-    tpsBtn.Text = settings.tpsEnabled and "三人称: ON" or "三人称: OFF"
-    tpsBtn.BackgroundColor3 = settings.tpsEnabled and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-    Notify("三人称", settings.tpsEnabled and "有効" or "無効", 2)
-    if not settings.tpsEnabled then
-        Camera.CameraType = Enum.CameraType.Fixed
-    end
-end)
-
--- FOV表示ラベル
-local fovLabel = Instance.new("TextLabel")
-fovLabel.Size = UDim2.new(1, 0, 0, 30)
-fovLabel.Position = UDim2.new(0, 0, 0, 120)
-fovLabel.BackgroundTransparency = 1
-fovLabel.Text = "FOV: " .. tostring(settings.fovValue)
-fovLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-fovLabel.TextSize = 16
-fovLabel.Font = Enum.Font.GothamBold
-fovLabel.Parent = contentFrame
-
--- FOV +/- ボタン
-local fovMinus = Instance.new("TextButton")
-fovMinus.Size = UDim2.new(0.4, -5, 0, 30)
-fovMinus.Position = UDim2.new(0, 0, 0, 155)
-fovMinus.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-fovMinus.Text = "－"
-fovMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
-fovMinus.TextSize = 18
-fovMinus.Font = Enum.Font.GothamBold
-fovMinus.Parent = contentFrame
-
-local fovPlus = Instance.new("TextButton")
-fovPlus.Size = UDim2.new(0.4, -5, 0, 30)
-fovPlus.Position = UDim2.new(0.6, 5, 0, 155)
-fovPlus.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-fovPlus.Text = "＋"
-fovPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
-fovPlus.TextSize = 18
-fovPlus.Font = Enum.Font.GothamBold
-fovPlus.Parent = contentFrame
-
-local function updateFOVLabel()
+    -- FOV表示
+    local fovLabel = Instance.new("TextLabel")
+    fovLabel.Size = UDim2.new(1, 0, 0, 30)
+    fovLabel.Position = UDim2.new(0, 0, 0, 120)
+    fovLabel.BackgroundTransparency = 1
     fovLabel.Text = "FOV: " .. tostring(settings.fovValue)
-    Camera.FieldOfView = settings.fovValue
-end
+    fovLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    fovLabel.TextSize = 16
+    fovLabel.Font = Enum.Font.GothamBold
+    fovLabel.Parent = contentFrame
 
-fovMinus.MouseButton1Click:Connect(function()
-    settings.fovValue = math.max(1, settings.fovValue - 5)
-    updateFOVLabel()
-    Notify("FOV", "変更: " .. tostring(settings.fovValue), 1)
-end)
+    local fovMinus = Instance.new("TextButton")
+    fovMinus.Size = UDim2.new(0.4, -5, 0, 30)
+    fovMinus.Position = UDim2.new(0, 0, 0, 155)
+    fovMinus.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+    fovMinus.Text = "－"
+    fovMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fovMinus.TextSize = 18
+    fovMinus.Font = Enum.Font.GothamBold
+    fovMinus.Parent = contentFrame
 
-fovPlus.MouseButton1Click:Connect(function()
-    settings.fovValue = math.min(120, settings.fovValue + 5)
-    updateFOVLabel()
-    Notify("FOV", "変更: " .. tostring(settings.fovValue), 1)
-end)
+    local fovPlus = Instance.new("TextButton")
+    fovPlus.Size = UDim2.new(0.4, -5, 0, 30)
+    fovPlus.Position = UDim2.new(0.6, 5, 0, 155)
+    fovPlus.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+    fovPlus.Text = "＋"
+    fovPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fovPlus.TextSize = 18
+    fovPlus.Font = Enum.Font.GothamBold
+    fovPlus.Parent = contentFrame
 
--- チームチェックトグル (追加機能だが簡易実装)
-local teamBtn = createButton("同チーム除外: ON", 200, Color3.fromRGB(40, 80, 40))
-teamBtn.MouseButton1Click:Connect(function()
-    settings.teamCheck = not settings.teamCheck
-    teamBtn.Text = settings.teamCheck and "同チーム除外: ON" or "同チーム除外: OFF"
-    teamBtn.BackgroundColor3 = settings.teamCheck and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
-    Notify("TeamCheck", settings.teamCheck and "有効" or "無効", 2)
-end)
-
---==================== 終了時処理 (GUI削除など) ====================
-playerGui.ChildRemoved:Connect(function(child)
-    if child == screenGui then
-        clearESP()
-        Notify("終了", "スクリプトを停止しました", 2)
+    local function updateFOVLabel()
+        fovLabel.Text = "FOV: " .. tostring(settings.fovValue)
+        Camera.FieldOfView = settings.fovValue
     end
-end)
 
-Notify("準備完了", "FPSチートがロードされました", 3)
+    fovMinus.MouseButton1Click:Connect(function()
+        settings.fovValue = math.max(1, settings.fovValue - 5)
+        updateFOVLabel()
+        Notify("FOV", "変更: " .. tostring(settings.fovValue), 1)
+    end)
+
+    fovPlus.MouseButton1Click:Connect(function()
+        settings.fovValue = math.min(120, settings.fovValue + 5)
+        updateFOVLabel()
+        Notify("FOV", "変更: " .. tostring(settings.fovValue), 1)
+    end)
+
+    -- チーム除外
+    local teamBtn = createButton("同チーム除外: ON", 200, Color3.fromRGB(40, 80, 40))
+    teamBtn.MouseButton1Click:Connect(function()
+        settings.teamCheck = not settings.teamCheck
+        teamBtn.Text = settings.teamCheck and "同チーム除外: ON" or "同チーム除外: OFF"
+        teamBtn.BackgroundColor3 = settings.teamCheck and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(80, 40, 40)
+        Notify("TeamCheck", settings.teamCheck and "有効" or "無効", 2)
+    end)
+
+    -- 終了時処理
+    playerGui.ChildRemoved:Connect(function(child)
+        if child == screenGui then
+            clearESP()
+            Notify("終了", "スクリプトを停止しました", 2)
+        end
+    end)
+
+    Notify("準備完了", "FPSチートが正常にロードされました", 3)
+
+end) -- pcall 終了
+
+-- エラーが発生した場合は通知で表示
+if not success then
+    local StarterGui = game:GetService("StarterGui")
+    StarterGui:SetCore("SendNotification", {
+        Title = "スクリプトエラー",
+        Text = "エラー内容: " .. tostring(err),
+        Duration = 10
+    })
+    -- さらに、エラー内容をクリップボードにコピー（デバッグ用）
+    setclipboard(tostring(err))
+    warn("エラーが発生しました: ", err)
+end
