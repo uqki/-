@@ -1,7 +1,7 @@
+
 --[[
-    FPS Cheat Script v2 - Mobile Executor Optimized
-    Fixed ESP + Modern UI
-    Features: ESP(Box/Tracer/Health/Name/Dist), Aimbot(FOV Circle), Third Person, FOV Slider
+    FPS Cheat Script v3 - ESP Box Position Fixed
+    Fixed: Box now centers on player character properly
 --]]
 
 local Players = game:GetService("Players")
@@ -14,9 +14,6 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- ============================================================
--- 1. Notification
--- ============================================================
 local function Notify(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title,
@@ -26,27 +23,26 @@ local function Notify(title, text, duration)
 end
 
 -- ============================================================
--- 2. ESP ScreenGui (Top Layer)
+-- ESP Overlay (Top Layer)
 -- ============================================================
 local ESP_ScreenGui = Instance.new("ScreenGui")
-ESP_ScreenGui.Name = "ESP_Overlay_v2"
+ESP_ScreenGui.Name = "ESP_Overlay_v3"
 ESP_ScreenGui.ResetOnSpawn = false
 ESP_ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ESP_ScreenGui.DisplayOrder = 999
 ESP_ScreenGui.Parent = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
 -- ============================================================
--- 3. Main GUI (Modern Dark)
+-- Main GUI (Modern Dark)
 -- ============================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPS_Cheat_v2"
+ScreenGui.Name = "FPS_Cheat_v3"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 10
 ScreenGui.Parent = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "Main"
 MainFrame.Size = UDim2.new(0, 270, 0, 380)
 MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
@@ -54,7 +50,6 @@ MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
-
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 
 local TopBar = Instance.new("Frame")
@@ -63,7 +58,6 @@ TopBar.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
 TopBar.BorderSizePixel = 0
 TopBar.Active = true
 TopBar.Parent = MainFrame
-
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
 
 local Title = Instance.new("TextLabel")
@@ -100,7 +94,6 @@ CloseBtn.Parent = TopBar
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
 
 local Content = Instance.new("ScrollingFrame")
-Content.Name = "Content"
 Content.Size = UDim2.new(1, -20, 1, -52)
 Content.Position = UDim2.new(0, 10, 0, 48)
 Content.BackgroundTransparency = 1
@@ -115,7 +108,7 @@ UIList.Padding = UDim.new(0, 8)
 UIList.Parent = Content
 
 -- ============================================================
--- 4. UI Helpers (Modern)
+-- UI Helpers
 -- ============================================================
 local function CreateSection(text)
     local lbl = Instance.new("TextLabel")
@@ -127,7 +120,6 @@ local function CreateSection(text)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = Content
-    return lbl
 end
 
 local function CreateToggle(name, callback)
@@ -267,7 +259,7 @@ local function CreateSlider(name, min, max, default, callback)
 end
 
 -- ============================================================
--- 5. ESP System (Fixed & Enhanced)
+-- ESP System (Box Position Fixed)
 -- ============================================================
 local ESP_Enabled = false
 local ESP_Storage = {}
@@ -345,7 +337,7 @@ local function CreateESP(player)
     distLbl.Font = Enum.Font.Gotham
     distLbl.Parent = container
 
-    -- Tracer (direct child of ESP_ScreenGui for clean math)
+    -- Tracer
     local tracer = Instance.new("Frame")
     tracer.Name = player.Name .. "_Tracer"
     tracer.BorderSizePixel = 0
@@ -427,24 +419,30 @@ local function UpdateESP()
         local rootPos, rootOnScreen = Camera:WorldToViewportPoint(hrp.Position)
         local headPos = Camera:WorldToViewportPoint(head.Position)
 
-        -- FIX: Check Z > 0 to avoid behind-camera rendering
         if rootOnScreen and rootPos.Z > 0 then
-            local height = math.abs(headPos.Y - rootPos.Y) * 2.1
+            -- FIX: Center the box between Head and HRP, not at HRP
+            local root2D = Vector2.new(rootPos.X, rootPos.Y)
+            local head2D = Vector2.new(headPos.X, headPos.Y)
+            local center2D = (root2D + head2D) / 2
+
+            local rawHeight = math.abs(head2D.Y - root2D.Y)
+            local height = rawHeight * 2.0  -- tuned for full body coverage
             local width = height * 0.55
-            if width < 20 then width = 20 end
-            if height < 30 then height = 30 end
+            if width < 24 then width = 24 end
+            if height < 35 then height = 35 end
 
             local dist = (hrp.Position - Camera.CFrame.Position).Magnitude
             local isTeam = IsTeammate(player)
             local color = isTeam and Color3.fromRGB(50, 255, 100) or Color3.fromRGB(255, 60, 60)
 
-            -- Update Box
-            data.Stroke.Color = color
+            -- Position: center2D is the middle of the player, so offset by half size
             data.Container.Size = UDim2.new(0, width, 0, height)
-            data.Container.Position = UDim2.new(0, rootPos.X - width / 2, 0, rootPos.Y - height / 2)
+            data.Container.Position = UDim2.new(0, center2D.X - width / 2, 0, center2D.Y - height / 2)
             data.Container.Visible = true
 
-            -- Update Health
+            data.Stroke.Color = color
+
+            -- Health
             if hum then
                 local pct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
                 data.HpBar.Size = UDim2.new(1, 0, pct, 0)
@@ -455,12 +453,11 @@ local function UpdateESP()
                 data.HpBg.Visible = false
             end
 
-            -- Update Text
             data.Dist.Text = math.floor(dist) .. " studs"
 
-            -- Update Tracer
-            local playerScreen = Vector2.new(rootPos.X, rootPos.Y + height / 2)
-            local diff = playerScreen - bottomCenter
+            -- Tracer: from bottom center to box bottom center
+            local boxBottom = Vector2.new(center2D.X, center2D.Y + height / 2)
+            local diff = boxBottom - bottomCenter
             local len = diff.Magnitude
             local angle = math.deg(math.atan2(diff.Y, diff.X))
 
@@ -476,7 +473,6 @@ local function UpdateESP()
     end
 end
 
--- Init ESP for existing players
 for _, p in ipairs(Players:GetPlayers()) do
     if p ~= LocalPlayer then
         CreateESP(p)
@@ -489,7 +485,7 @@ RunService.RenderStepped:Connect(UpdateESP)
 Notify("ESP Init", "Tracking " .. tostring(#Players:GetPlayers() - 1) .. " player(s)", 3)
 
 -- ============================================================
--- 6. Aimbot + FOV Circle
+-- Aimbot + FOV Circle
 -- ============================================================
 local Aimbot_Enabled = false
 local AimbotConnection = nil
@@ -510,7 +506,7 @@ FOVStroke.Color = Color3.fromRGB(0, 170, 255)
 FOVStroke.Thickness = 1.5
 FOVStroke.Parent = FOVCircle
 
-local AimbotFOV = 100 -- radius in pixels
+local AimbotFOV = 100
 
 local function GetClosestInFOV()
     local closest, shortest = nil, AimbotFOV
@@ -518,8 +514,7 @@ local function GetClosestInFOV()
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            if IsTeammate(player) then continue end -- Skip teammates
-
+            if IsTeammate(player) then continue end
             local pos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
             if onScreen and pos.Z > 0 then
                 local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
@@ -555,7 +550,7 @@ local function ToggleAimbot(state)
 end
 
 -- ============================================================
--- 7. Third Person
+-- Third Person
 -- ============================================================
 local ThirdPerson_Enabled = false
 local ThirdPersonConnection = nil
@@ -590,14 +585,14 @@ local function ToggleThirdPerson(state)
 end
 
 -- ============================================================
--- 8. FOV Slider
+-- FOV Slider
 -- ============================================================
 local function SetFOV(val)
     Camera.FieldOfView = val
 end
 
 -- ============================================================
--- 9. Build UI
+-- Build UI
 -- ============================================================
 CreateSection("VISUALS")
 CreateToggle("ESP / Wallhack", function(en)
@@ -622,7 +617,7 @@ CreateSlider("FOV", 30, 120, 70, function(val)
 end)
 
 -- ============================================================
--- 10. Drag & Minimize
+-- Drag & Minimize
 -- ============================================================
 local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
 
@@ -684,7 +679,4 @@ CloseBtn.MouseButton1Click:Connect(function()
     Notify("Script", "Closed & Cleaned", 2)
 end)
 
--- ============================================================
--- 11. Done
--- ============================================================
-Notify("FPS Cheat v2", "Loaded! Modern UI + Fixed ESP", 4)
+Notify("FPS Cheat v3", "ESP Box position fixed!", 4)
