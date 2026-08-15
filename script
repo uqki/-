@@ -1,7 +1,7 @@
 -- ============================================
--- FPS Mobile Cheat - Rapid Fire Edition
--- Removed: FOV Circle
--- Added: RemoteEvent Rapid Fire via ShootReplicate
+-- FPS Mobile Cheat - Compact Tab Edition
+-- Height: 280px (was 520px)
+-- Tabs: Main / Fire / Settings
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -46,7 +46,7 @@ local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV4"
+ScreenGui.Name = "FPSMobileCheatV5"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -54,10 +54,10 @@ if not ScreenGui.Parent then
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- Main Frame
+-- Main Frame (Compact)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -260)
+MainFrame.Size = UDim2.new(0, 260, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -140)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -66,7 +66,7 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
 -- Title Bar
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 38)
+TitleBar.Size = UDim2.new(1, 0, 0, 36)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
@@ -78,15 +78,14 @@ TitleText.Position = UDim2.new(0, 12, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "FPS Cheat"
 TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleText.TextSize = 16
+TitleText.TextSize = 15
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
--- Minimize
 local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 32, 0, 32)
-MinBtn.Position = UDim2.new(1, -70, 0, 3)
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -68, 0, 3)
 MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -95,9 +94,8 @@ MinBtn.Font = Enum.Font.GothamBold
 MinBtn.Parent = TitleBar
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
--- Close
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -36, 0, 3)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseBtn.Text = "X"
@@ -107,38 +105,108 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = TitleBar
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
--- Content
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -20, 1, -48)
-Content.Position = UDim2.new(0, 10, 0, 43)
-Content.BackgroundTransparency = 1
-Content.Parent = MainFrame
+-- Tab Bar
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, -20, 0, 26)
+TabBar.Position = UDim2.new(0, 10, 0, 38)
+TabBar.BackgroundTransparency = 1
+TabBar.Parent = MainFrame
+
+local TabButtons = {}
+local TabFrames = {}
+local activeTab = "Main"
+
+local function SwitchTab(tabName)
+    activeTab = tabName
+    for name, btn in pairs(TabButtons) do
+        if name == tabName then
+            btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        end
+    end
+    for name, frame in pairs(TabFrames) do
+        frame.Visible = (name == tabName)
+    end
+end
+
+local function CreateTabButton(name, x, width)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, width, 1, 0)
+    btn.Position = UDim2.new(0, x, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = TabBar
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    btn.MouseButton1Click:Connect(function() SwitchTab(name) end)
+    TabButtons[name] = btn
+end
+
+local tabWidth = (260 - 20 - 8) / 3
+CreateTabButton("Main", 0, tabWidth)
+CreateTabButton("Fire", tabWidth + 4, tabWidth)
+CreateTabButton("Settings", tabWidth * 2 + 8, tabWidth)
+
+-- Tab Content Container
+local ContentY = 68
+local ContentH = 210
+
+local TabMain = Instance.new("Frame")
+TabMain.Size = UDim2.new(1, -20, 0, ContentH)
+TabMain.Position = UDim2.new(0, 10, 0, ContentY)
+TabMain.BackgroundTransparency = 1
+TabMain.Visible = true
+TabMain.Parent = MainFrame
+TabFrames["Main"] = TabMain
+
+local TabFire = Instance.new("Frame")
+TabFire.Size = UDim2.new(1, -20, 0, ContentH)
+TabFire.Position = UDim2.new(0, 10, 0, ContentY)
+TabFire.BackgroundTransparency = 1
+TabFire.Visible = false
+TabFire.Parent = MainFrame
+TabFrames["Fire"] = TabFire
+
+local TabSettings = Instance.new("Frame")
+TabSettings.Size = UDim2.new(1, -20, 0, ContentH)
+TabSettings.Position = UDim2.new(0, 10, 0, ContentY)
+TabSettings.BackgroundTransparency = 1
+TabSettings.Visible = false
+TabSettings.Parent = MainFrame
+TabFrames["Settings"] = TabSettings
+
+SwitchTab("Main")
 
 -- Toggle Factory
-local function CreateToggle(name, key, y)
+local function CreateToggle(name, key, y, parent)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 38)
+    f.Size = UDim2.new(1, 0, 0, 34)
     f.Position = UDim2.new(0, 0, 0, y)
     f.BackgroundTransparency = 1
-    f.Parent = Content
+    f.Parent = parent
 
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(0.6, 0, 1, 0)
     l.BackgroundTransparency = 1
     l.Text = name
     l.TextColor3 = Color3.fromRGB(210, 210, 210)
-    l.TextSize = 14
+    l.TextSize = 13
     l.Font = Enum.Font.Gotham
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Parent = f
 
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 52, 0, 28)
-    b.Position = UDim2.new(1, -52, 0.5, -14)
+    b.Size = UDim2.new(0, 48, 0, 26)
+    b.Position = UDim2.new(1, -48, 0.5, -13)
     b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
     b.Text = Settings[key] and "ON" or "OFF"
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.TextSize = 12
+    b.TextSize = 11
     b.Font = Enum.Font.GothamBold
     b.Parent = f
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
@@ -151,39 +219,39 @@ local function CreateToggle(name, key, y)
     end)
 end
 
-CreateToggle("ESP / Wallhack", "ESP", 0)
-CreateToggle("Aimbot", "Aimbot", 42)
-CreateToggle("Third Person", "ThirdPerson", 84)
-CreateToggle("Rapid Fire", "RapidFire", 126)
-CreateToggle("Headshot Only", "HeadshotOnly", 168)
+CreateToggle("ESP / Wallhack", "ESP", 0, TabMain)
+CreateToggle("Aimbot", "Aimbot", 38, TabMain)
+CreateToggle("Third Person", "ThirdPerson", 76, TabMain)
+CreateToggle("Rapid Fire", "RapidFire", 114, TabMain)
+CreateToggle("Headshot Only", "HeadshotOnly", 152, TabMain)
 
 -- Slider Factory
 local activeSlider = nil
 
-local function CreateSlider(name, key, y, min, max, suffix, isFloat, color)
+local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, parent)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 55)
+    f.Size = UDim2.new(1, 0, 0, 50)
     f.Position = UDim2.new(0, 0, 0, y)
     f.BackgroundTransparency = 1
-    f.Parent = Content
+    f.Parent = parent
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 22)
+    lbl.Size = UDim2.new(1, 0, 0, 20)
     lbl.BackgroundTransparency = 1
-    lbl.Text = name .. ": " .. (isFloat and string.format("%.2f", Settings[key]) or Settings[key]) .. (suffix or "")
+    lbl.Text = name .. ": " .. (isFloat and string.format("%.3f", Settings[key]) or Settings[key]) .. (suffix or "")
     lbl.TextColor3 = Color3.fromRGB(210, 210, 210)
-    lbl.TextSize = 14
+    lbl.TextSize = 13
     lbl.Font = Enum.Font.Gotham
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = f
 
     local track = Instance.new("Frame")
-    track.Size = UDim2.new(1, 0, 0, 10)
-    track.Position = UDim2.new(0, 0, 0, 32)
+    track.Size = UDim2.new(1, 0, 0, 8)
+    track.Position = UDim2.new(0, 0, 0, 28)
     track.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     track.BorderSizePixel = 0
     track.Parent = f
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 5)
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 4)
 
     local fill = Instance.new("Frame")
     local percent = (Settings[key] - min) / (max - min)
@@ -191,11 +259,11 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color)
     fill.BackgroundColor3 = color or Color3.fromRGB(0, 150, 255)
     fill.BorderSizePixel = 0
     fill.Parent = track
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 5)
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 4)
 
     local knob = Instance.new("TextButton")
-    knob.Size = UDim2.new(0, 22, 0, 22)
-    knob.Position = UDim2.new(percent, -11, 0, -6)
+    knob.Size = UDim2.new(0, 18, 0, 18)
+    knob.Position = UDim2.new(percent, -9, 0, -5)
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.Text = ""
     knob.Parent = track
@@ -206,10 +274,10 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color)
         local absW = track.AbsoluteSize.X
         local pos = math.clamp((input.Position.X - absX) / absW, 0, 1)
         local val = isFloat and (min + pos * (max - min)) or math.floor(min + pos * (max - min))
-        Settings[key] = isFloat and math.floor(val * 100) / 100 or val
-        lbl.Text = name .. ": " .. (isFloat and string.format("%.2f", Settings[key]) or Settings[key]) .. (suffix or "")
+        Settings[key] = isFloat and math.floor(val * 1000) / 1000 or val
+        lbl.Text = name .. ": " .. (isFloat and string.format("%.3f", Settings[key]) or Settings[key]) .. (suffix or "")
         fill.Size = UDim2.new(pos, 0, 1, 0)
-        knob.Position = UDim2.new(pos, -11, 0, -6)
+        knob.Position = UDim2.new(pos, -9, 0, -5)
         if key == "FOV" then Camera.FieldOfView = Settings.FOV end
     end
 
@@ -226,11 +294,14 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color)
     end)
 end
 
-CreateSlider("FOV", "FOV", 210, 30, 120, "", false, Color3.fromRGB(0, 150, 255))
-CreateSlider("Aim Range", "AimbotRange", 270, 50, 500, "", false, Color3.fromRGB(255, 60, 60))
-CreateSlider("Aim Speed", "AimSpeed", 330, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255))
-CreateSlider("Fire Rate", "FireRate", 390, 0.001, 0.1, "s", true, Color3.fromRGB(255, 200, 0))
-CreateSlider("Rapid Range", "RapidRange", 450, 50, 500, "", false, Color3.fromRGB(0, 200, 100))
+-- Fire Tab Sliders
+CreateSlider("Fire Rate", "FireRate", 0, 0.001, 0.1, "s", true, Color3.fromRGB(255, 200, 0), TabFire)
+CreateSlider("Rapid Range", "RapidRange", 55, 50, 500, "", false, Color3.fromRGB(0, 200, 100), TabFire)
+
+-- Settings Tab Sliders
+CreateSlider("FOV", "FOV", 0, 30, 120, "", false, Color3.fromRGB(0, 150, 255), TabSettings)
+CreateSlider("Aim Range", "AimbotRange", 55, 50, 500, "", false, Color3.fromRGB(255, 60, 60), TabSettings)
+CreateSlider("Aim Speed", "AimSpeed", 110, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255), TabSettings)
 
 -- Slider Input Logic
 UserInputService.InputChanged:Connect(function(i)
@@ -243,7 +314,7 @@ UserInputService.InputChanged:Connect(function(i)
         Settings[s.key] = s.isFloat and math.floor(val * 1000) / 1000 or val
         s.lbl.Text = s.name .. ": " .. (s.isFloat and string.format("%.3f", Settings[s.key]) or Settings[s.key]) .. (s.suffix or "")
         s.fill.Size = UDim2.new(pos, 0, 1, 0)
-        s.knob.Position = UDim2.new(pos, -11, 0, -6)
+        s.knob.Position = UDim2.new(pos, -9, 0, -5)
         if s.key == "FOV" then Camera.FieldOfView = Settings.FOV end
     end
 end)
@@ -283,9 +354,11 @@ end)
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    Content.Visible = not minimized
-    MainFrame.Size = minimized and UDim2.new(0, 240, 0, 38) or UDim2.new(0, 240, 0, 520)
+    TabBar.Visible = not minimized
+    for _, f in pairs(TabFrames) do f.Visible = not minimized and f.Name == "Tab" .. activeTab end
+    MainFrame.Size = minimized and UDim2.new(0, 260, 0, 36) or UDim2.new(0, 260, 0, 280)
     MinBtn.Text = minimized and "+" or "-"
+    if not minimized then SwitchTab(activeTab) end
 end)
 
 -- Cleanup
@@ -486,7 +559,7 @@ local function GetAimbotTarget()
 end
 
 -- ============================================
--- RAPID FIRE SYSTEM (ShootReplicate)
+-- RAPID FIRE SYSTEM
 -- ============================================
 local bulletId = 0
 
@@ -521,7 +594,6 @@ local function GetRapidFireTarget()
     return bestTarget
 end
 
--- Rapid Fire Loop
 spawn(function()
     while ScreenGui and ScreenGui.Parent do
         if Settings.RapidFire then
@@ -586,7 +658,6 @@ end
 -- MAIN LOOP
 -- ============================================
 RunService.RenderStepped:Connect(function()
-    -- ESP
     if Settings.ESP then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer then
@@ -597,7 +668,6 @@ RunService.RenderStepped:Connect(function()
         ClearAllESP()
     end
 
-    -- Aimbot (Smooth)
     if Settings.Aimbot then
         local target = GetAimbotTarget()
         if target then
@@ -606,14 +676,12 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Third Person
     UpdateThirdPerson()
 end)
 
--- Cleanup
 Players.PlayerRemoving:Connect(function(p)
     ClearPlayerESP(p)
 end)
 
 Camera.FieldOfView = Settings.FOV
-Notify("FPS Cheat", "Rapid Fire Script Loaded!", 3)
+Notify("FPS Cheat", "Compact Tab Script Loaded!", 3)
