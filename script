@@ -1,7 +1,7 @@
 -- ============================================
--- FPS Mobile Cheat - Enhanced Aimbot v3
--- Fixed: FOV Circle Exact Screen Center
--- Enhanced: Smooth Aim, Bone Select, Target Lock
+-- FPS Mobile Cheat - Rapid Fire Edition
+-- Removed: FOV Circle
+-- Added: RemoteEvent Rapid Fire via ShootReplicate
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -10,9 +10,12 @@ local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
+local ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootReplicate")
+local CrosshairRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CrosshairSync")
 
 -- Notification
 local function Notify(title, text, duration)
@@ -29,10 +32,13 @@ genv.FPSCheat = genv.FPSCheat or {
     ESP = false,
     Aimbot = false,
     ThirdPerson = false,
+    RapidFire = false,
+    HeadshotOnly = false,
     FOV = 70,
     AimbotRange = 200,
+    RapidRange = 200,
     AimSpeed = 0.15,
-    AimbotFOV = 70,
+    FireRate = 0.05,
     ESPColor = Color3.fromRGB(255, 0, 0),
     TeamCheck = true
 }
@@ -40,7 +46,7 @@ local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV3"
+ScreenGui.Name = "FPSMobileCheatV4"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -50,8 +56,8 @@ end
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 370)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -185)
+MainFrame.Size = UDim2.new(0, 240, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -260)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -148,11 +154,13 @@ end
 CreateToggle("ESP / Wallhack", "ESP", 0)
 CreateToggle("Aimbot", "Aimbot", 42)
 CreateToggle("Third Person", "ThirdPerson", 84)
+CreateToggle("Rapid Fire", "RapidFire", 126)
+CreateToggle("Headshot Only", "HeadshotOnly", 168)
 
 -- Slider Factory
 local activeSlider = nil
 
-local function CreateSlider(name, key, y, min, max, suffix, isFloat)
+local function CreateSlider(name, key, y, min, max, suffix, isFloat, color)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, 0, 0, 55)
     f.Position = UDim2.new(0, 0, 0, y)
@@ -180,7 +188,7 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat)
     local fill = Instance.new("Frame")
     local percent = (Settings[key] - min) / (max - min)
     fill.Size = UDim2.new(percent, 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    fill.BackgroundColor3 = color or Color3.fromRGB(0, 150, 255)
     fill.BorderSizePixel = 0
     fill.Parent = track
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 5)
@@ -216,14 +224,13 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat)
             UpdateFromInput(i)
         end
     end)
-
-    return f
 end
 
-CreateSlider("FOV", "FOV", 128, 30, 120, "", false)
-CreateSlider("Aim Range", "AimbotRange", 188, 50, 500, "", false)
-CreateSlider("Aim Speed", "AimSpeed", 248, 0.01, 0.5, "", true)
-CreateSlider("Aimbot FOV", "AimbotFOV", 308, 20, 200, "px", false)
+CreateSlider("FOV", "FOV", 210, 30, 120, "", false, Color3.fromRGB(0, 150, 255))
+CreateSlider("Aim Range", "AimbotRange", 270, 50, 500, "", false, Color3.fromRGB(255, 60, 60))
+CreateSlider("Aim Speed", "AimSpeed", 330, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255))
+CreateSlider("Fire Rate", "FireRate", 390, 0.001, 0.1, "s", true, Color3.fromRGB(255, 200, 0))
+CreateSlider("Rapid Range", "RapidRange", 450, 50, 500, "", false, Color3.fromRGB(0, 200, 100))
 
 -- Slider Input Logic
 UserInputService.InputChanged:Connect(function(i)
@@ -233,8 +240,8 @@ UserInputService.InputChanged:Connect(function(i)
         local absW = s.track.AbsoluteSize.X
         local pos = math.clamp((i.Position.X - absX) / absW, 0, 1)
         local val = s.isFloat and (s.min + pos * (s.max - s.min)) or math.floor(s.min + pos * (s.max - s.min))
-        Settings[s.key] = s.isFloat and math.floor(val * 100) / 100 or val
-        s.lbl.Text = s.name .. ": " .. (s.isFloat and string.format("%.2f", Settings[s.key]) or Settings[s.key]) .. (s.suffix or "")
+        Settings[s.key] = s.isFloat and math.floor(val * 1000) / 1000 or val
+        s.lbl.Text = s.name .. ": " .. (s.isFloat and string.format("%.3f", Settings[s.key]) or Settings[s.key]) .. (s.suffix or "")
         s.fill.Size = UDim2.new(pos, 0, 1, 0)
         s.knob.Position = UDim2.new(pos, -11, 0, -6)
         if s.key == "FOV" then Camera.FieldOfView = Settings.FOV end
@@ -277,7 +284,7 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     Content.Visible = not minimized
-    MainFrame.Size = minimized and UDim2.new(0, 240, 0, 38) or UDim2.new(0, 240, 0, 370)
+    MainFrame.Size = minimized and UDim2.new(0, 240, 0, 38) or UDim2.new(0, 240, 0, 520)
     MinBtn.Text = minimized and "+" or "-"
 end)
 
@@ -291,42 +298,8 @@ CloseBtn.MouseButton1Click:Connect(function()
             if b then b:Destroy() end
         end
     end
-    if AimbotCircle then AimbotCircle:Destroy() end
     ScreenGui:Destroy()
     Notify("FPS Cheat", "Script Closed", 3)
-end)
-
--- ============================================
--- AIMBOT FOV CIRCLE (Exact Screen Center)
--- ============================================
-local AimbotCircle = Instance.new("Frame")
-AimbotCircle.Name = "AimbotFOVCircle"
-AimbotCircle.BackgroundTransparency = 0.88
-AimbotCircle.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-AimbotCircle.BorderSizePixel = 0
-AimbotCircle.Visible = false
-AimbotCircle.ZIndex = 0
-AimbotCircle.Parent = ScreenGui
-
-local cc = Instance.new("UICorner", AimbotCircle)
-cc.CornerRadius = UDim.new(1, 0)
-
-local CircleOutline = Instance.new("UIStroke", AimbotCircle)
-CircleOutline.Thickness = 2.5
-CircleOutline.Color = Color3.fromRGB(255, 80, 80)
-
--- Update circle every frame to stay at exact center
-RunService.RenderStepped:Connect(function()
-    if Settings.Aimbot then
-        local size = Settings.AimbotFOV * 2
-        local cx = Camera.ViewportSize.X / 2
-        local cy = Camera.ViewportSize.Y / 2
-        AimbotCircle.Size = UDim2.new(0, size, 0, size)
-        AimbotCircle.Position = UDim2.new(0, cx - size/2, 0, cy - size/2)
-        AimbotCircle.Visible = true
-    else
-        AimbotCircle.Visible = false
-    end
 end)
 
 -- ============================================
@@ -368,13 +341,9 @@ local function CreateESP(player)
                 local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude)
                 distLabel.Text = dist .. "m"
             end
-            if nameLabel then
-                nameLabel.TextColor3 = Settings.ESPColor
-            end
+            if nameLabel then nameLabel.TextColor3 = Settings.ESPColor end
             local hl = char:FindFirstChild("FPSESP_H")
-            if hl then
-                hl.FillColor = Settings.ESPColor
-            end
+            if hl then hl.FillColor = Settings.ESPColor end
         end
         return
     end
@@ -430,52 +399,41 @@ local function ClearAllESP()
 end
 
 -- ============================================
--- ENHANCED AIMBOT SYSTEM
+-- AIMBOT SYSTEM (No Circle)
 -- ============================================
-
--- Get best bone to aim at (priority order)
 local function GetTargetBone(character)
     local priority = {"Head", "UpperTorso", "Torso", "HumanoidRootPart"}
     for _, boneName in ipairs(priority) do
         local bone = character:FindFirstChild(boneName)
-        if bone then
-            return bone
-        end
+        if bone then return bone end
     end
     return character:FindFirstChild("HumanoidRootPart")
 end
 
--- Visibility check with wall penetration prevention
 local function IsVisible(targetPart, targetCharacter)
     if not targetPart then return false end
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
     local distance = direction.Magnitude
     direction = direction.Unit
-
     local ray = Ray.new(origin, direction * distance)
-    local ignoreList = {LocalPlayer.Character, Camera}
-    local hit = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-
+    local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, Camera})
     if not hit then return true end
     if hit:IsDescendantOf(targetCharacter) then return true end
     if hit.Transparency > 0.7 then return true end
     return false
 end
 
--- Current locked target
 local currentTarget = nil
 
 local function GetAimbotTarget()
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
-
     local myPos = myChar.HumanoidRootPart.Position
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     local bestTarget = nil
     local bestScore = math.huge
 
-    -- Target lock: keep current if still valid
     if currentTarget and currentTarget.Parent then
         local char = currentTarget.Parent
         local player = Players:GetPlayerFromCharacter(char)
@@ -488,7 +446,7 @@ local function GetAimbotTarget()
                     local screenPos, onScreen = Camera:WorldToViewportPoint(currentTarget.Position)
                     if onScreen then
                         local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-                        if screenDist <= Settings.AimbotFOV * 1.5 then
+                        if screenDist <= 120 then
                             if IsVisible(currentTarget, char) then
                                 return currentTarget
                             end
@@ -500,31 +458,22 @@ local function GetAimbotTarget()
     end
     currentTarget = nil
 
-    -- Find new target
     for _, p in pairs(Players:GetPlayers()) do
         if p == LocalPlayer then continue end
         if not p.Character then continue end
-
         local char = p.Character
         local bone = GetTargetBone(char)
         local hum = char:FindFirstChildOfClass("Humanoid")
         local hrp = char:FindFirstChild("HumanoidRootPart")
-
         if not bone or not hum or hum.Health <= 0 or not hrp then continue end
         if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
-
         local dist = (hrp.Position - myPos).Magnitude
         if dist > Settings.AimbotRange then continue end
-
         local screenPos, onScreen = Camera:WorldToViewportPoint(bone.Position)
         if not onScreen then continue end
-
         local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-        if screenDist > Settings.AimbotFOV then continue end
-
+        if screenDist > 100 then continue end
         if not IsVisible(bone, char) then continue end
-
-        -- Score: closer to screen center = better, with slight distance weight
         local score = screenDist + (dist * 0.05)
         if score < bestScore then
             bestScore = score
@@ -535,6 +484,80 @@ local function GetAimbotTarget()
     currentTarget = bestTarget
     return bestTarget
 end
+
+-- ============================================
+-- RAPID FIRE SYSTEM (ShootReplicate)
+-- ============================================
+local bulletId = 0
+
+local function GetRapidFireTarget()
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    local myPos = myChar.HumanoidRootPart.Position
+    local bestTarget = nil
+    local bestDist = Settings.RapidRange
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p == LocalPlayer then continue end
+        if not p.Character then continue end
+        local char = p.Character
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 0 then continue end
+        if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
+
+        local targetPart = Settings.HeadshotOnly and char:FindFirstChild("Head") or GetTargetBone(char)
+        if not targetPart then continue end
+
+        local dist = (targetPart.Position - myPos).Magnitude
+        if dist > bestDist then continue end
+
+        local ray = Ray.new(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * dist)
+        local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {myChar, Camera})
+        if hit and not hit:IsDescendantOf(char) and hit.Transparency < 0.5 then continue end
+
+        bestDist = dist
+        bestTarget = targetPart
+    end
+    return bestTarget
+end
+
+-- Rapid Fire Loop
+spawn(function()
+    while ScreenGui and ScreenGui.Parent do
+        if Settings.RapidFire then
+            local myChar = LocalPlayer.Character
+            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                local target = GetRapidFireTarget()
+                if target then
+                    bulletId = bulletId + 1
+                    local origin = Camera.CFrame.Position
+                    local hitPos = target.Position
+                    local hitNormal = (origin - hitPos).Unit
+
+                    ShootRemote:FireServer({
+                        hitPos = hitPos,
+                        ownerUserId = LocalPlayer.UserId,
+                        origin = origin,
+                        id = bulletId,
+                        effects = {Frost = 0, Ricochet = 0, Barrage = 0},
+                        hitInstance = target,
+                        to = hitPos,
+                        mode = "single",
+                        hitNormal = hitNormal,
+                        kind = "bullet",
+                        isCharacterHit = true,
+                        isADS = false,
+                    })
+
+                    CrosshairRemote:FireServer("Patch", {TwoHanded = false})
+                end
+            end
+            task.wait(Settings.FireRate)
+        else
+            task.wait(0.1)
+        end
+    end
+end)
 
 -- ============================================
 -- THIRD PERSON
@@ -574,15 +597,12 @@ RunService.RenderStepped:Connect(function()
         ClearAllESP()
     end
 
-    -- Aimbot
+    -- Aimbot (Smooth)
     if Settings.Aimbot then
         local target = GetAimbotTarget()
         if target then
             local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
             Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Settings.AimSpeed)
-            CircleOutline.Color = Color3.fromRGB(0, 255, 100) -- Green when locked
-        else
-            CircleOutline.Color = Color3.fromRGB(255, 80, 80) -- Red when idle
         end
     end
 
@@ -596,4 +616,4 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 
 Camera.FieldOfView = Settings.FOV
-Notify("FPS Cheat", "Enhanced Script Loaded!", 3)
+Notify("FPS Cheat", "Rapid Fire Script Loaded!", 3)
