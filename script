@@ -1,7 +1,7 @@
 -- ============================================
--- FPS Mobile Cheat - Compact Tab Edition
--- Height: 280px (was 520px)
--- Tabs: Main / Fire / Settings
+-- FPS Mobile Cheat - Aimbot+Rapid Merge Edition
+-- Removed: RapidFire Toggle (merged into Aimbot)
+-- Added: Config Save/Load, FOV 30-180
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -32,7 +33,6 @@ genv.FPSCheat = genv.FPSCheat or {
     ESP = false,
     Aimbot = false,
     ThirdPerson = false,
-    RapidFire = false,
     HeadshotOnly = false,
     FOV = 70,
     AimbotRange = 200,
@@ -46,7 +46,7 @@ local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV5"
+ScreenGui.Name = "FPSMobileCheatV6"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -54,7 +54,7 @@ if not ScreenGui.Parent then
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- Main Frame (Compact)
+-- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 260, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -130, 0.5, -140)
@@ -152,7 +152,7 @@ CreateTabButton("Main", 0, tabWidth)
 CreateTabButton("Fire", tabWidth + 4, tabWidth)
 CreateTabButton("Settings", tabWidth * 2 + 8, tabWidth)
 
--- Tab Content Container
+-- Tab Content
 local ContentY = 68
 local ContentH = 210
 
@@ -182,7 +182,9 @@ TabFrames["Settings"] = TabSettings
 
 SwitchTab("Main")
 
--- Toggle Factory
+-- Toggle tracking for Save/Load
+local ToggleButtons = {}
+
 local function CreateToggle(name, key, y, parent)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, 0, 0, 34)
@@ -217,16 +219,18 @@ local function CreateToggle(name, key, y, parent)
         b.Text = Settings[key] and "ON" or "OFF"
         Notify("FPS Cheat", name .. " " .. (Settings[key] and "Enabled" or "Disabled"), 2)
     end)
+
+    ToggleButtons[key] = b
 end
 
 CreateToggle("ESP / Wallhack", "ESP", 0, TabMain)
-CreateToggle("Aimbot", "Aimbot", 38, TabMain)
+CreateToggle("Aimbot + Rapid", "Aimbot", 38, TabMain)
 CreateToggle("Third Person", "ThirdPerson", 76, TabMain)
-CreateToggle("Rapid Fire", "RapidFire", 114, TabMain)
-CreateToggle("Headshot Only", "HeadshotOnly", 152, TabMain)
+CreateToggle("Headshot Only", "HeadshotOnly", 114, TabMain)
 
--- Slider Factory
+-- Slider tracking for Save/Load
 local activeSlider = nil
+local SliderRefs = {}
 
 local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, parent)
     local f = Instance.new("Frame")
@@ -292,16 +296,112 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, pare
             UpdateFromInput(i)
         end
     end)
+
+    SliderRefs[key] = {fill = fill, knob = knob, lbl = lbl, min = min, max = max, isFloat = isFloat, suffix = suffix, name = name}
 end
 
--- Fire Tab Sliders
+-- Fire Tab
 CreateSlider("Fire Rate", "FireRate", 0, 0.001, 0.1, "s", true, Color3.fromRGB(255, 200, 0), TabFire)
 CreateSlider("Rapid Range", "RapidRange", 55, 50, 500, "", false, Color3.fromRGB(0, 200, 100), TabFire)
 
--- Settings Tab Sliders
-CreateSlider("FOV", "FOV", 0, 30, 120, "", false, Color3.fromRGB(0, 150, 255), TabSettings)
-CreateSlider("Aim Range", "AimbotRange", 55, 50, 500, "", false, Color3.fromRGB(255, 60, 60), TabSettings)
-CreateSlider("Aim Speed", "AimSpeed", 110, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255), TabSettings)
+-- Settings Tab
+CreateSlider("FOV", "FOV", 0, 30, 180, "", false, Color3.fromRGB(0, 150, 255), TabSettings)
+CreateSlider("Aim Range", "AimbotRange", 50, 50, 500, "", false, Color3.fromRGB(255, 60, 60), TabSettings)
+CreateSlider("Aim Speed", "AimSpeed", 100, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255), TabSettings)
+
+-- Save / Load Buttons
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Size = UDim2.new(0.48, 0, 0, 28)
+SaveBtn.Position = UDim2.new(0, 0, 0, 158)
+SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 0)
+SaveBtn.Text = "Save"
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.TextSize = 12
+SaveBtn.Font = Enum.Font.GothamBold
+SaveBtn.Parent = TabSettings
+Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
+
+local LoadBtn = Instance.new("TextButton")
+LoadBtn.Size = UDim2.new(0.48, 0, 0, 28)
+LoadBtn.Position = UDim2.new(0.52, 0, 0, 158)
+LoadBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+LoadBtn.Text = "Load"
+LoadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadBtn.TextSize = 12
+LoadBtn.Font = Enum.Font.GothamBold
+LoadBtn.Parent = TabSettings
+Instance.new("UICorner", LoadBtn).CornerRadius = UDim.new(0, 6)
+
+-- Config System
+local ConfigFile = "FPSCheat_Mobile.json"
+
+local function RefreshUI()
+    -- Toggles
+    for key, btn in pairs(ToggleButtons) do
+        btn.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
+        btn.Text = Settings[key] and "ON" or "OFF"
+    end
+    -- Sliders
+    for key, ref in pairs(SliderRefs) do
+        local percent = (Settings[key] - ref.min) / (ref.max - ref.min)
+        ref.fill.Size = UDim2.new(percent, 0, 1, 0)
+        ref.knob.Position = UDim2.new(percent, -9, 0, -5)
+        ref.lbl.Text = ref.name .. ": " .. (ref.isFloat and string.format("%.3f", Settings[key]) or Settings[key]) .. (ref.suffix or "")
+    end
+    Camera.FieldOfView = Settings.FOV
+end
+
+local function SaveConfig()
+    local ok = pcall(function()
+        local data = {
+            ESP = Settings.ESP,
+            Aimbot = Settings.Aimbot,
+            ThirdPerson = Settings.ThirdPerson,
+            HeadshotOnly = Settings.HeadshotOnly,
+            FOV = Settings.FOV,
+            AimbotRange = Settings.AimbotRange,
+            RapidRange = Settings.RapidRange,
+            AimSpeed = Settings.AimSpeed,
+            FireRate = Settings.FireRate,
+            TeamCheck = Settings.TeamCheck,
+            ESPColorR = Settings.ESPColor.R,
+            ESPColorG = Settings.ESPColor.G,
+            ESPColorB = Settings.ESPColor.B,
+        }
+        writefile(ConfigFile, HttpService:JSONEncode(data))
+    end)
+    Notify("Config", ok and "Saved!" or "Save Failed", 2)
+end
+
+local function LoadConfig()
+    local ok = pcall(function()
+        if isfile(ConfigFile) then
+            local data = HttpService:JSONDecode(readfile(ConfigFile))
+            Settings.ESP = data.ESP
+            Settings.Aimbot = data.Aimbot
+            Settings.ThirdPerson = data.ThirdPerson
+            Settings.HeadshotOnly = data.HeadshotOnly
+            Settings.FOV = data.FOV
+            Settings.AimbotRange = data.AimbotRange
+            Settings.RapidRange = data.RapidRange
+            Settings.AimSpeed = data.AimSpeed
+            Settings.FireRate = data.FireRate
+            Settings.TeamCheck = data.TeamCheck
+            Settings.ESPColor = Color3.new(data.ESPColorR, data.ESPColorG, data.ESPColorB)
+            RefreshUI()
+        else
+            Notify("Config", "No file found", 2)
+        end
+    end)
+    if ok and isfile(ConfigFile) then
+        Notify("Config", "Loaded!", 2)
+    elseif not ok then
+        Notify("Config", "Load Failed", 2)
+    end
+end
+
+SaveBtn.MouseButton1Click:Connect(SaveConfig)
+LoadBtn.MouseButton1Click:Connect(LoadConfig)
 
 -- Slider Input Logic
 UserInputService.InputChanged:Connect(function(i)
@@ -472,7 +572,7 @@ local function ClearAllESP()
 end
 
 -- ============================================
--- AIMBOT SYSTEM (No Circle)
+-- AIMBOT SYSTEM (Merged with Rapid Fire)
 -- ============================================
 local function GetTargetBone(character)
     local priority = {"Head", "UpperTorso", "Torso", "HumanoidRootPart"}
@@ -559,69 +659,42 @@ local function GetAimbotTarget()
 end
 
 -- ============================================
--- RAPID FIRE SYSTEM
+-- RAPID FIRE (Merged into Aimbot)
+-- Fires automatically when Aimbot locks a target
 -- ============================================
 local bulletId = 0
 
-local function GetRapidFireTarget()
-    local myChar = LocalPlayer.Character
-    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
-    local myPos = myChar.HumanoidRootPart.Position
-    local bestTarget = nil
-    local bestDist = Settings.RapidRange
-
-    for _, p in pairs(Players:GetPlayers()) do
-        if p == LocalPlayer then continue end
-        if not p.Character then continue end
-        local char = p.Character
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not hum or hum.Health <= 0 then continue end
-        if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
-
-        local targetPart = Settings.HeadshotOnly and char:FindFirstChild("Head") or GetTargetBone(char)
-        if not targetPart then continue end
-
-        local dist = (targetPart.Position - myPos).Magnitude
-        if dist > bestDist then continue end
-
-        local ray = Ray.new(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * dist)
-        local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {myChar, Camera})
-        if hit and not hit:IsDescendantOf(char) and hit.Transparency < 0.5 then continue end
-
-        bestDist = dist
-        bestTarget = targetPart
-    end
-    return bestTarget
-end
-
 spawn(function()
     while ScreenGui and ScreenGui.Parent do
-        if Settings.RapidFire then
-            local myChar = LocalPlayer.Character
-            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-                local target = GetRapidFireTarget()
-                if target then
-                    bulletId = bulletId + 1
-                    local origin = Camera.CFrame.Position
-                    local hitPos = target.Position
-                    local hitNormal = (origin - hitPos).Unit
+        if Settings.Aimbot then
+            if currentTarget and currentTarget.Parent then
+                local char = currentTarget.Parent
+                local player = Players:GetPlayerFromCharacter(char)
+                if player and player ~= LocalPlayer then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        bulletId = bulletId + 1
+                        local origin = Camera.CFrame.Position
+                        local hitPos = currentTarget.Position
+                        local hitNormal = (origin - hitPos).Unit
 
-                    ShootRemote:FireServer({
-                        hitPos = hitPos,
-                        ownerUserId = LocalPlayer.UserId,
-                        origin = origin,
-                        id = bulletId,
-                        effects = {Frost = 0, Ricochet = 0, Barrage = 0},
-                        hitInstance = target,
-                        to = hitPos,
-                        mode = "single",
-                        hitNormal = hitNormal,
-                        kind = "bullet",
-                        isCharacterHit = true,
-                        isADS = false,
-                    })
+                        ShootRemote:FireServer({
+                            hitPos = hitPos,
+                            ownerUserId = LocalPlayer.UserId,
+                            origin = origin,
+                            id = bulletId,
+                            effects = {Frost = 0, Ricochet = 0, Barrage = 0},
+                            hitInstance = currentTarget,
+                            to = hitPos,
+                            mode = "single",
+                            hitNormal = hitNormal,
+                            kind = "bullet",
+                            isCharacterHit = true,
+                            isADS = false,
+                        })
 
-                    CrosshairRemote:FireServer("Patch", {TwoHanded = false})
+                        CrosshairRemote:FireServer("Patch", {TwoHanded = false})
+                    end
                 end
             end
             task.wait(Settings.FireRate)
@@ -674,6 +747,8 @@ RunService.RenderStepped:Connect(function()
             local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
             Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Settings.AimSpeed)
         end
+    else
+        currentTarget = nil
     end
 
     UpdateThirdPerson()
@@ -684,4 +759,4 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 
 Camera.FieldOfView = Settings.FOV
-Notify("FPS Cheat", "Compact Tab Script Loaded!", 3)
+Notify("FPS Cheat", "Aimbot+Rapid Merged! Config Ready.", 3)
