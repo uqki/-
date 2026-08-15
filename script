@@ -1,6 +1,7 @@
 -- ============================================
--- FPS Mobile Cheat - Fixed Edition
--- Fixed: ESP Labels, Aimbot FOV Circle Position
+-- FPS Mobile Cheat - Enhanced Aimbot v3
+-- Fixed: FOV Circle Exact Screen Center
+-- Enhanced: Smooth Aim, Bone Select, Target Lock
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -30,6 +31,8 @@ genv.FPSCheat = genv.FPSCheat or {
     ThirdPerson = false,
     FOV = 70,
     AimbotRange = 200,
+    AimSpeed = 0.15,
+    AimbotFOV = 70,
     ESPColor = Color3.fromRGB(255, 0, 0),
     TeamCheck = true
 }
@@ -37,7 +40,7 @@ local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV2"
+ScreenGui.Name = "FPSMobileCheatV3"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -47,15 +50,15 @@ end
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 230, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -115, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 240, 0, 370)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -185)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
--- Title
+-- Title Bar
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 38)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -146,126 +149,95 @@ CreateToggle("ESP / Wallhack", "ESP", 0)
 CreateToggle("Aimbot", "Aimbot", 42)
 CreateToggle("Third Person", "ThirdPerson", 84)
 
--- FOV Slider
-local FOVFrame = Instance.new("Frame")
-FOVFrame.Size = UDim2.new(1, 0, 0, 55)
-FOVFrame.Position = UDim2.new(0, 0, 0, 128)
-FOVFrame.BackgroundTransparency = 1
-FOVFrame.Parent = Content
-
-local FOVLabel = Instance.new("TextLabel")
-FOVLabel.Size = UDim2.new(1, 0, 0, 22)
-FOVLabel.BackgroundTransparency = 1
-FOVLabel.Text = "FOV: " .. Settings.FOV
-FOVLabel.TextColor3 = Color3.fromRGB(210, 210, 210)
-FOVLabel.TextSize = 14
-FOVLabel.Font = Enum.Font.Gotham
-FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
-FOVLabel.Parent = FOVFrame
-
-local FOVTrack = Instance.new("Frame")
-FOVTrack.Size = UDim2.new(1, 0, 0, 10)
-FOVTrack.Position = UDim2.new(0, 0, 0, 32)
-FOVTrack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-FOVTrack.BorderSizePixel = 0
-FOVTrack.Parent = FOVFrame
-Instance.new("UICorner", FOVTrack).CornerRadius = UDim.new(0, 5)
-
-local FOVFill = Instance.new("Frame")
-local fovPercent = (Settings.FOV - 30) / 90
-FOVFill.Size = UDim2.new(fovPercent, 0, 1, 0)
-FOVFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-FOVFill.BorderSizePixel = 0
-FOVFill.Parent = FOVTrack
-Instance.new("UICorner", FOVFill).CornerRadius = UDim.new(0, 5)
-
-local FOVKnob = Instance.new("TextButton")
-FOVKnob.Size = UDim2.new(0, 22, 0, 22)
-FOVKnob.Position = UDim2.new(fovPercent, -11, 0, -6)
-FOVKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-FOVKnob.Text = ""
-FOVKnob.Parent = FOVTrack
-Instance.new("UICorner", FOVKnob).CornerRadius = UDim.new(1, 0)
-
--- Range Slider
-local RangeFrame = Instance.new("Frame")
-RangeFrame.Size = UDim2.new(1, 0, 0, 55)
-RangeFrame.Position = UDim2.new(0, 0, 0, 188)
-RangeFrame.BackgroundTransparency = 1
-RangeFrame.Parent = Content
-
-local RangeLabel = Instance.new("TextLabel")
-RangeLabel.Size = UDim2.new(1, 0, 0, 22)
-RangeLabel.BackgroundTransparency = 1
-RangeLabel.Text = "Aim Range: " .. Settings.AimbotRange
-RangeLabel.TextColor3 = Color3.fromRGB(210, 210, 210)
-RangeLabel.TextSize = 14
-RangeLabel.Font = Enum.Font.Gotham
-RangeLabel.TextXAlignment = Enum.TextXAlignment.Left
-RangeLabel.Parent = RangeFrame
-
-local RangeTrack = Instance.new("Frame")
-RangeTrack.Size = UDim2.new(1, 0, 0, 10)
-RangeTrack.Position = UDim2.new(0, 0, 0, 32)
-RangeTrack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-RangeTrack.BorderSizePixel = 0
-RangeTrack.Parent = RangeFrame
-Instance.new("UICorner", RangeTrack).CornerRadius = UDim.new(0, 5)
-
-local RangeFill = Instance.new("Frame")
-local rangePercent = (Settings.AimbotRange - 50) / 450
-RangeFill.Size = UDim2.new(rangePercent, 0, 1, 0)
-RangeFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-RangeFill.BorderSizePixel = 0
-RangeFill.Parent = RangeTrack
-Instance.new("UICorner", RangeFill).CornerRadius = UDim.new(0, 5)
-
-local RangeKnob = Instance.new("TextButton")
-RangeKnob.Size = UDim2.new(0, 22, 0, 22)
-RangeKnob.Position = UDim2.new(rangePercent, -11, 0, -6)
-RangeKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-RangeKnob.Text = ""
-RangeKnob.Parent = RangeTrack
-Instance.new("UICorner", RangeKnob).CornerRadius = UDim.new(1, 0)
-
--- Slider Logic
+-- Slider Factory
 local activeSlider = nil
 
-local function UpdateSlider(input, track, fill, knob, label, min, max, settingKey, suffix)
-    local absX = track.AbsolutePosition.X
-    local absW = track.AbsoluteSize.X
-    local pos = math.clamp((input.Position.X - absX) / absW, 0, 1)
-    local val = math.floor(min + pos * (max - min))
-    Settings[settingKey] = val
-    label.Text = (settingKey == "FOV" and "FOV: " or "Aim Range: ") .. val .. (suffix or "")
-    fill.Size = UDim2.new(pos, 0, 1, 0)
-    knob.Position = UDim2.new(pos, -11, 0, -6)
-    if settingKey == "FOV" then
-        Camera.FieldOfView = val
-    end
-    return val
-end
+local function CreateSlider(name, key, y, min, max, suffix, isFloat)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 55)
+    f.Position = UDim2.new(0, 0, 0, y)
+    f.BackgroundTransparency = 1
+    f.Parent = Content
 
-local function SetupSlider(knob, track, fill, label, min, max, key, suffix)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 22)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name .. ": " .. (isFloat and string.format("%.2f", Settings[key]) or Settings[key]) .. (suffix or "")
+    lbl.TextColor3 = Color3.fromRGB(210, 210, 210)
+    lbl.TextSize = 14
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = f
+
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(1, 0, 0, 10)
+    track.Position = UDim2.new(0, 0, 0, 32)
+    track.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    track.BorderSizePixel = 0
+    track.Parent = f
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 5)
+
+    local fill = Instance.new("Frame")
+    local percent = (Settings[key] - min) / (max - min)
+    fill.Size = UDim2.new(percent, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    fill.BorderSizePixel = 0
+    fill.Parent = track
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 5)
+
+    local knob = Instance.new("TextButton")
+    knob.Size = UDim2.new(0, 22, 0, 22)
+    knob.Position = UDim2.new(percent, -11, 0, -6)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.Text = ""
+    knob.Parent = track
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+    local function UpdateFromInput(input)
+        local absX = track.AbsolutePosition.X
+        local absW = track.AbsoluteSize.X
+        local pos = math.clamp((input.Position.X - absX) / absW, 0, 1)
+        local val = isFloat and (min + pos * (max - min)) or math.floor(min + pos * (max - min))
+        Settings[key] = isFloat and math.floor(val * 100) / 100 or val
+        lbl.Text = name .. ": " .. (isFloat and string.format("%.2f", Settings[key]) or Settings[key]) .. (suffix or "")
+        fill.Size = UDim2.new(pos, 0, 1, 0)
+        knob.Position = UDim2.new(pos, -11, 0, -6)
+        if key == "FOV" then Camera.FieldOfView = Settings.FOV end
+    end
+
     knob.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
-            activeSlider = {track, fill, knob, label, min, max, key, suffix}
+            activeSlider = {track = track, fill = fill, knob = knob, lbl = lbl, min = min, max = max, key = key, suffix = suffix, isFloat = isFloat, name = name}
         end
     end)
     track.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
-            activeSlider = {track, fill, knob, label, min, max, key, suffix}
-            UpdateSlider(i, track, fill, knob, label, min, max, key, suffix)
+            activeSlider = {track = track, fill = fill, knob = knob, lbl = lbl, min = min, max = max, key = key, suffix = suffix, isFloat = isFloat, name = name}
+            UpdateFromInput(i)
         end
     end)
+
+    return f
 end
 
-SetupSlider(FOVKnob, FOVTrack, FOVFill, FOVLabel, 30, 120, "FOV")
-SetupSlider(RangeKnob, RangeTrack, RangeFill, RangeLabel, 50, 500, "AimbotRange")
+CreateSlider("FOV", "FOV", 128, 30, 120, "", false)
+CreateSlider("Aim Range", "AimbotRange", 188, 50, 500, "", false)
+CreateSlider("Aim Speed", "AimSpeed", 248, 0.01, 0.5, "", true)
+CreateSlider("Aimbot FOV", "AimbotFOV", 308, 20, 200, "px", false)
 
+-- Slider Input Logic
 UserInputService.InputChanged:Connect(function(i)
     if activeSlider and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then
-        UpdateSlider(i, activeSlider[1], activeSlider[2], activeSlider[3], activeSlider[4], activeSlider[5], activeSlider[6], activeSlider[7], activeSlider[8])
+        local s = activeSlider
+        local absX = s.track.AbsolutePosition.X
+        local absW = s.track.AbsoluteSize.X
+        local pos = math.clamp((i.Position.X - absX) / absW, 0, 1)
+        local val = s.isFloat and (s.min + pos * (s.max - s.min)) or math.floor(s.min + pos * (s.max - s.min))
+        Settings[s.key] = s.isFloat and math.floor(val * 100) / 100 or val
+        s.lbl.Text = s.name .. ": " .. (s.isFloat and string.format("%.2f", Settings[s.key]) or Settings[s.key]) .. (s.suffix or "")
+        s.fill.Size = UDim2.new(pos, 0, 1, 0)
+        s.knob.Position = UDim2.new(pos, -11, 0, -6)
+        if s.key == "FOV" then Camera.FieldOfView = Settings.FOV end
     end
 end)
 
@@ -305,7 +277,7 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     Content.Visible = not minimized
-    MainFrame.Size = minimized and UDim2.new(0, 230, 0, 38) or UDim2.new(0, 230, 0, 300)
+    MainFrame.Size = minimized and UDim2.new(0, 240, 0, 38) or UDim2.new(0, 240, 0, 370)
     MinBtn.Text = minimized and "+" or "-"
 end)
 
@@ -325,27 +297,40 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================
--- AIMBOT FOV CIRCLE (Center Screen)
+-- AIMBOT FOV CIRCLE (Exact Screen Center)
 -- ============================================
 local AimbotCircle = Instance.new("Frame")
 AimbotCircle.Name = "AimbotFOVCircle"
-AimbotCircle.Size = UDim2.new(0, 140, 0, 140)
-AimbotCircle.Position = UDim2.new(0.5, -70, 0.5, -70)
-AimbotCircle.BackgroundTransparency = 0.85
+AimbotCircle.BackgroundTransparency = 0.88
 AimbotCircle.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 AimbotCircle.BorderSizePixel = 0
 AimbotCircle.Visible = false
 AimbotCircle.ZIndex = 0
 AimbotCircle.Parent = ScreenGui
+
 local cc = Instance.new("UICorner", AimbotCircle)
 cc.CornerRadius = UDim.new(1, 0)
 
 local CircleOutline = Instance.new("UIStroke", AimbotCircle)
-CircleOutline.Thickness = 2
+CircleOutline.Thickness = 2.5
 CircleOutline.Color = Color3.fromRGB(255, 80, 80)
 
+-- Update circle every frame to stay at exact center
+RunService.RenderStepped:Connect(function()
+    if Settings.Aimbot then
+        local size = Settings.AimbotFOV * 2
+        local cx = Camera.ViewportSize.X / 2
+        local cy = Camera.ViewportSize.Y / 2
+        AimbotCircle.Size = UDim2.new(0, size, 0, size)
+        AimbotCircle.Position = UDim2.new(0, cx - size/2, 0, cy - size/2)
+        AimbotCircle.Visible = true
+    else
+        AimbotCircle.Visible = false
+    end
+end)
+
 -- ============================================
--- ESP SYSTEM (Fixed)
+-- ESP SYSTEM
 -- ============================================
 local ESPObjects = {}
 
@@ -374,9 +359,7 @@ local function CreateESP(player)
         return
     end
 
-    -- Skip if already created for this character
     if char:FindFirstChild("FPSESP_H") and char:FindFirstChild("FPSESP_B") then
-        -- Update only
         local bg = char:FindFirstChild("FPSESP_B")
         if bg then
             local distLabel = bg:FindFirstChild("DistLabel")
@@ -396,10 +379,8 @@ local function CreateESP(player)
         return
     end
 
-    -- Remove old if character changed
     ClearPlayerESP(player)
 
-    -- Highlight
     local hl = Instance.new("Highlight")
     hl.Name = "FPSESP_H"
     hl.FillColor = Settings.ESPColor
@@ -410,7 +391,6 @@ local function CreateESP(player)
     hl.Adornee = char
     hl.Parent = char
 
-    -- Billboard
     local bg = Instance.new("BillboardGui")
     bg.Name = "FPSESP_B"
     bg.Size = UDim2.new(0, 120, 0, 50)
@@ -450,49 +430,110 @@ local function ClearAllESP()
 end
 
 -- ============================================
--- AIMBOT SYSTEM
+-- ENHANCED AIMBOT SYSTEM
 -- ============================================
+
+-- Get best bone to aim at (priority order)
+local function GetTargetBone(character)
+    local priority = {"Head", "UpperTorso", "Torso", "HumanoidRootPart"}
+    for _, boneName in ipairs(priority) do
+        local bone = character:FindFirstChild(boneName)
+        if bone then
+            return bone
+        end
+    end
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+-- Visibility check with wall penetration prevention
+local function IsVisible(targetPart, targetCharacter)
+    if not targetPart then return false end
+    local origin = Camera.CFrame.Position
+    local direction = targetPart.Position - origin
+    local distance = direction.Magnitude
+    direction = direction.Unit
+
+    local ray = Ray.new(origin, direction * distance)
+    local ignoreList = {LocalPlayer.Character, Camera}
+    local hit = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+
+    if not hit then return true end
+    if hit:IsDescendantOf(targetCharacter) then return true end
+    if hit.Transparency > 0.7 then return true end
+    return false
+end
+
+-- Current locked target
+local currentTarget = nil
+
 local function GetAimbotTarget()
-    local closest = nil
-    local minScreenDist = math.huge
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+
     local myPos = myChar.HumanoidRootPart.Position
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local bestTarget = nil
+    local bestScore = math.huge
 
+    -- Target lock: keep current if still valid
+    if currentTarget and currentTarget.Parent then
+        local char = currentTarget.Parent
+        local player = Players:GetPlayerFromCharacter(char)
+        if player and player ~= LocalPlayer then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hum and hum.Health > 0 and hrp then
+                local dist = (hrp.Position - myPos).Magnitude
+                if dist <= Settings.AimbotRange * 1.3 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(currentTarget.Position)
+                    if onScreen then
+                        local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                        if screenDist <= Settings.AimbotFOV * 1.5 then
+                            if IsVisible(currentTarget, char) then
+                                return currentTarget
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    currentTarget = nil
+
+    -- Find new target
     for _, p in pairs(Players:GetPlayers()) do
         if p == LocalPlayer then continue end
         if not p.Character then continue end
-        local head = p.Character:FindFirstChild("Head")
-        local hum = p.Character:FindFirstChildOfClass("Humanoid")
-        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-        if not head or not hum or hum.Health <= 0 or not hrp then continue end
+
+        local char = p.Character
+        local bone = GetTargetBone(char)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+
+        if not bone or not hum or hum.Health <= 0 or not hrp then continue end
         if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
 
         local dist = (hrp.Position - myPos).Magnitude
         if dist > Settings.AimbotRange then continue end
 
-        -- Check if in FOV circle (screen distance)
-        local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+        local screenPos, onScreen = Camera:WorldToViewportPoint(bone.Position)
         if not onScreen then continue end
+
         local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-        if screenDist > 70 then continue end -- Within 140px diameter circle
+        if screenDist > Settings.AimbotFOV then continue end
 
-        -- Wallcheck
-        local rayDir = (head.Position - Camera.CFrame.Position).Unit * dist
-        local ray = Ray.new(Camera.CFrame.Position, rayDir)
-        local ignoreList = {myChar, Camera}
-        local hit, hitPos = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-        if hit and not hit:IsDescendantOf(p.Character) and hit.Transparency < 0.5 then
-            continue
-        end
+        if not IsVisible(bone, char) then continue end
 
-        if screenDist < minScreenDist then
-            minScreenDist = screenDist
-            closest = head
+        -- Score: closer to screen center = better, with slight distance weight
+        local score = screenDist + (dist * 0.05)
+        if score < bestScore then
+            bestScore = score
+            bestTarget = bone
         end
     end
-    return closest
+
+    currentTarget = bestTarget
+    return bestTarget
 end
 
 -- ============================================
@@ -522,7 +563,7 @@ end
 -- MAIN LOOP
 -- ============================================
 RunService.RenderStepped:Connect(function()
-    -- ESP Update
+    -- ESP
     if Settings.ESP then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer then
@@ -533,14 +574,12 @@ RunService.RenderStepped:Connect(function()
         ClearAllESP()
     end
 
-    -- Aimbot FOV Circle visibility
-    AimbotCircle.Visible = Settings.Aimbot
-
     -- Aimbot
     if Settings.Aimbot then
         local target = GetAimbotTarget()
         if target then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Settings.AimSpeed)
             CircleOutline.Color = Color3.fromRGB(0, 255, 100) -- Green when locked
         else
             CircleOutline.Color = Color3.fromRGB(255, 80, 80) -- Red when idle
@@ -551,10 +590,10 @@ RunService.RenderStepped:Connect(function()
     UpdateThirdPerson()
 end)
 
--- Cleanup on player leave
+-- Cleanup
 Players.PlayerRemoving:Connect(function(p)
     ClearPlayerESP(p)
 end)
 
 Camera.FieldOfView = Settings.FOV
-Notify("FPS Cheat", "Fixed Script Loaded!", 3)
+Notify("FPS Cheat", "Enhanced Script Loaded!", 3)
