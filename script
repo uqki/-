@@ -1,8 +1,6 @@
-
 -- ============================================
--- FPS Mobile Cheat - Complete Edition
--- Features: ESP, Aimbot, Third Person, FOV
--- Mobile Optimized | Drag & Minimize Support
+-- FPS Mobile Cheat - Fixed Edition
+-- Fixed: ESP Labels, Aimbot FOV Circle Position
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -15,7 +13,7 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- Notification System
+-- Notification
 local function Notify(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title,
@@ -24,7 +22,7 @@ local function Notify(title, text, duration)
     })
 end
 
--- Settings via getgenv
+-- Settings
 local genv = getgenv()
 genv.FPSCheat = genv.FPSCheat or {
     ESP = false,
@@ -37,9 +35,9 @@ genv.FPSCheat = genv.FPSCheat or {
 }
 local Settings = genv.FPSCheat
 
--- UI Setup
+-- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheat"
+ScreenGui.Name = "FPSMobileCheatV2"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -49,27 +47,25 @@ end
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -110, 0.5, -140)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Size = UDim2.new(0, 230, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -115, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-
--- Title Bar
+-- Title
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 35)
-TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TitleBar.Size = UDim2.new(1, 0, 0, 38)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
 
 local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(1, -70, 1, 0)
-TitleText.Position = UDim2.new(0, 10, 0, 0)
+TitleText.Size = UDim2.new(1, -80, 1, 0)
+TitleText.Position = UDim2.new(0, 12, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "FPS Cheat"
 TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -78,22 +74,22 @@ TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
--- Minimize Button
+-- Minimize
 local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(1, -65, 0, 2)
-MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinBtn.Size = UDim2.new(0, 32, 0, 32)
+MinBtn.Position = UDim2.new(1, -70, 0, 3)
+MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.TextSize = 20
+MinBtn.TextSize = 18
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.Parent = TitleBar
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
--- Close Button
+-- Close
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 2)
+CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+CloseBtn.Position = UDim2.new(1, -36, 0, 3)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -102,17 +98,17 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = TitleBar
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
--- Content Area
+-- Content
 local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -20, 1, -45)
-Content.Position = UDim2.new(0, 10, 0, 40)
+Content.Size = UDim2.new(1, -20, 1, -48)
+Content.Position = UDim2.new(0, 10, 0, 43)
 Content.BackgroundTransparency = 1
 Content.Parent = MainFrame
 
--- Toggle Creator
+-- Toggle Factory
 local function CreateToggle(name, key, y)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 35)
+    f.Size = UDim2.new(1, 0, 0, 38)
     f.Position = UDim2.new(0, 0, 0, y)
     f.BackgroundTransparency = 1
     f.Parent = Content
@@ -121,16 +117,16 @@ local function CreateToggle(name, key, y)
     l.Size = UDim2.new(0.6, 0, 1, 0)
     l.BackgroundTransparency = 1
     l.Text = name
-    l.TextColor3 = Color3.fromRGB(200, 200, 200)
+    l.TextColor3 = Color3.fromRGB(210, 210, 210)
     l.TextSize = 14
     l.Font = Enum.Font.Gotham
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Parent = f
 
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 50, 0, 26)
-    b.Position = UDim2.new(1, -50, 0.5, -13)
-    b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(80, 80, 80)
+    b.Size = UDim2.new(0, 52, 0, 28)
+    b.Position = UDim2.new(1, -52, 0.5, -14)
+    b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
     b.Text = Settings[key] and "ON" or "OFF"
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
     b.TextSize = 12
@@ -140,137 +136,146 @@ local function CreateToggle(name, key, y)
 
     b.MouseButton1Click:Connect(function()
         Settings[key] = not Settings[key]
-        b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(80, 80, 80)
+        b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
         b.Text = Settings[key] and "ON" or "OFF"
         Notify("FPS Cheat", name .. " " .. (Settings[key] and "Enabled" or "Disabled"), 2)
     end)
 end
 
 CreateToggle("ESP / Wallhack", "ESP", 0)
-CreateToggle("Aimbot", "Aimbot", 40)
-CreateToggle("Third Person", "ThirdPerson", 80)
+CreateToggle("Aimbot", "Aimbot", 42)
+CreateToggle("Third Person", "ThirdPerson", 84)
 
 -- FOV Slider
 local FOVFrame = Instance.new("Frame")
-FOVFrame.Size = UDim2.new(1, 0, 0, 50)
-FOVFrame.Position = UDim2.new(0, 0, 0, 120)
+FOVFrame.Size = UDim2.new(1, 0, 0, 55)
+FOVFrame.Position = UDim2.new(0, 0, 0, 128)
 FOVFrame.BackgroundTransparency = 1
 FOVFrame.Parent = Content
 
 local FOVLabel = Instance.new("TextLabel")
-FOVLabel.Size = UDim2.new(1, 0, 0, 20)
+FOVLabel.Size = UDim2.new(1, 0, 0, 22)
 FOVLabel.BackgroundTransparency = 1
 FOVLabel.Text = "FOV: " .. Settings.FOV
-FOVLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+FOVLabel.TextColor3 = Color3.fromRGB(210, 210, 210)
 FOVLabel.TextSize = 14
 FOVLabel.Font = Enum.Font.Gotham
 FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
 FOVLabel.Parent = FOVFrame
 
-local FOVBg = Instance.new("Frame")
-FOVBg.Size = UDim2.new(1, 0, 0, 8)
-FOVBg.Position = UDim2.new(0, 0, 0, 30)
-FOVBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-FOVBg.BorderSizePixel = 0
-FOVBg.Parent = FOVFrame
-Instance.new("UICorner", FOVBg).CornerRadius = UDim.new(0, 4)
+local FOVTrack = Instance.new("Frame")
+FOVTrack.Size = UDim2.new(1, 0, 0, 10)
+FOVTrack.Position = UDim2.new(0, 0, 0, 32)
+FOVTrack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+FOVTrack.BorderSizePixel = 0
+FOVTrack.Parent = FOVFrame
+Instance.new("UICorner", FOVTrack).CornerRadius = UDim.new(0, 5)
 
 local FOVFill = Instance.new("Frame")
-FOVFill.Size = UDim2.new((Settings.FOV - 30) / 90, 0, 1, 0)
+local fovPercent = (Settings.FOV - 30) / 90
+FOVFill.Size = UDim2.new(fovPercent, 0, 1, 0)
 FOVFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 FOVFill.BorderSizePixel = 0
-FOVFill.Parent = FOVBg
-Instance.new("UICorner", FOVFill).CornerRadius = UDim.new(0, 4)
+FOVFill.Parent = FOVTrack
+Instance.new("UICorner", FOVFill).CornerRadius = UDim.new(0, 5)
 
-local FOVBtn = Instance.new("TextButton")
-FOVBtn.Size = UDim2.new(0, 20, 0, 20)
-FOVBtn.Position = UDim2.new((Settings.FOV - 30) / 90, -10, 0, -6)
-FOVBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-FOVBtn.Text = ""
-FOVBtn.Parent = FOVBg
-Instance.new("UICorner", FOVBtn).CornerRadius = UDim.new(1, 0)
+local FOVKnob = Instance.new("TextButton")
+FOVKnob.Size = UDim2.new(0, 22, 0, 22)
+FOVKnob.Position = UDim2.new(fovPercent, -11, 0, -6)
+FOVKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+FOVKnob.Text = ""
+FOVKnob.Parent = FOVTrack
+Instance.new("UICorner", FOVKnob).CornerRadius = UDim.new(1, 0)
 
 -- Range Slider
 local RangeFrame = Instance.new("Frame")
-RangeFrame.Size = UDim2.new(1, 0, 0, 50)
-RangeFrame.Position = UDim2.new(0, 0, 0, 175)
+RangeFrame.Size = UDim2.new(1, 0, 0, 55)
+RangeFrame.Position = UDim2.new(0, 0, 0, 188)
 RangeFrame.BackgroundTransparency = 1
 RangeFrame.Parent = Content
 
 local RangeLabel = Instance.new("TextLabel")
-RangeLabel.Size = UDim2.new(1, 0, 0, 20)
+RangeLabel.Size = UDim2.new(1, 0, 0, 22)
 RangeLabel.BackgroundTransparency = 1
 RangeLabel.Text = "Aim Range: " .. Settings.AimbotRange
-RangeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+RangeLabel.TextColor3 = Color3.fromRGB(210, 210, 210)
 RangeLabel.TextSize = 14
 RangeLabel.Font = Enum.Font.Gotham
 RangeLabel.TextXAlignment = Enum.TextXAlignment.Left
 RangeLabel.Parent = RangeFrame
 
-local RangeBg = Instance.new("Frame")
-RangeBg.Size = UDim2.new(1, 0, 0, 8)
-RangeBg.Position = UDim2.new(0, 0, 0, 30)
-RangeBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-RangeBg.BorderSizePixel = 0
-RangeBg.Parent = RangeFrame
-Instance.new("UICorner", RangeBg).CornerRadius = UDim.new(0, 4)
+local RangeTrack = Instance.new("Frame")
+RangeTrack.Size = UDim2.new(1, 0, 0, 10)
+RangeTrack.Position = UDim2.new(0, 0, 0, 32)
+RangeTrack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+RangeTrack.BorderSizePixel = 0
+RangeTrack.Parent = RangeFrame
+Instance.new("UICorner", RangeTrack).CornerRadius = UDim.new(0, 5)
 
 local RangeFill = Instance.new("Frame")
-RangeFill.Size = UDim2.new((Settings.AimbotRange - 50) / 450, 0, 1, 0)
-RangeFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+local rangePercent = (Settings.AimbotRange - 50) / 450
+RangeFill.Size = UDim2.new(rangePercent, 0, 1, 0)
+RangeFill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
 RangeFill.BorderSizePixel = 0
-RangeFill.Parent = RangeBg
-Instance.new("UICorner", RangeFill).CornerRadius = UDim.new(0, 4)
+RangeFill.Parent = RangeTrack
+Instance.new("UICorner", RangeFill).CornerRadius = UDim.new(0, 5)
 
-local RangeBtn = Instance.new("TextButton")
-RangeBtn.Size = UDim2.new(0, 20, 0, 20)
-RangeBtn.Position = UDim2.new((Settings.AimbotRange - 50) / 450, -10, 0, -6)
-RangeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-RangeBtn.Text = ""
-RangeBtn.Parent = RangeBg
-Instance.new("UICorner", RangeBtn).CornerRadius = UDim.new(1, 0)
+local RangeKnob = Instance.new("TextButton")
+RangeKnob.Size = UDim2.new(0, 22, 0, 22)
+RangeKnob.Position = UDim2.new(rangePercent, -11, 0, -6)
+RangeKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+RangeKnob.Text = ""
+RangeKnob.Parent = RangeTrack
+Instance.new("UICorner", RangeKnob).CornerRadius = UDim.new(1, 0)
 
--- Slider Logic (Mobile Touch Support)
-local slidingFOV = false
-local slidingRange = false
+-- Slider Logic
+local activeSlider = nil
 
-local function UpdateFOV(input)
-    local pos = math.clamp((input.Position.X - FOVBg.AbsolutePosition.X) / FOVBg.AbsoluteSize.X, 0, 1)
-    local val = math.floor(30 + pos * 90)
-    Settings.FOV = val
-    Camera.FieldOfView = val
-    FOVLabel.Text = "FOV: " .. val
-    FOVFill.Size = UDim2.new(pos, 0, 1, 0)
-    FOVBtn.Position = UDim2.new(pos, -10, 0, -6)
+local function UpdateSlider(input, track, fill, knob, label, min, max, settingKey, suffix)
+    local absX = track.AbsolutePosition.X
+    local absW = track.AbsoluteSize.X
+    local pos = math.clamp((input.Position.X - absX) / absW, 0, 1)
+    local val = math.floor(min + pos * (max - min))
+    Settings[settingKey] = val
+    label.Text = (settingKey == "FOV" and "FOV: " or "Aim Range: ") .. val .. (suffix or "")
+    fill.Size = UDim2.new(pos, 0, 1, 0)
+    knob.Position = UDim2.new(pos, -11, 0, -6)
+    if settingKey == "FOV" then
+        Camera.FieldOfView = val
+    end
+    return val
 end
 
-local function UpdateRange(input)
-    local pos = math.clamp((input.Position.X - RangeBg.AbsolutePosition.X) / RangeBg.AbsoluteSize.X, 0, 1)
-    local val = math.floor(50 + pos * 450)
-    Settings.AimbotRange = val
-    RangeLabel.Text = "Aim Range: " .. val
-    RangeFill.Size = UDim2.new(pos, 0, 1, 0)
-    RangeBtn.Position = UDim2.new(pos, -10, 0, -6)
+local function SetupSlider(knob, track, fill, label, min, max, key, suffix)
+    knob.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+            activeSlider = {track, fill, knob, label, min, max, key, suffix}
+        end
+    end)
+    track.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+            activeSlider = {track, fill, knob, label, min, max, key, suffix}
+            UpdateSlider(i, track, fill, knob, label, min, max, key, suffix)
+        end
+    end)
 end
 
-FOVBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then slidingFOV = true end end)
-FOVBg.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then slidingFOV = true UpdateFOV(i) end end)
-RangeBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then slidingRange = true end end)
-RangeBg.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then slidingRange = true UpdateRange(i) end end)
+SetupSlider(FOVKnob, FOVTrack, FOVFill, FOVLabel, 30, 120, "FOV")
+SetupSlider(RangeKnob, RangeTrack, RangeFill, RangeLabel, 50, 500, "AimbotRange")
 
 UserInputService.InputChanged:Connect(function(i)
-    if slidingFOV and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then UpdateFOV(i) end
-    if slidingRange and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then UpdateRange(i) end
+    if activeSlider and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then
+        UpdateSlider(i, activeSlider[1], activeSlider[2], activeSlider[3], activeSlider[4], activeSlider[5], activeSlider[6], activeSlider[7], activeSlider[8])
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
-        slidingFOV = false
-        slidingRange = false
+        activeSlider = nil
     end
 end)
 
--- Drag System (Mobile)
+-- Drag
 local dragging = false
 local dragStart, startPos
 
@@ -290,7 +295,9 @@ UserInputService.InputChanged:Connect(function(i)
 end)
 
 UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
 end)
 
 -- Minimize
@@ -298,11 +305,11 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     Content.Visible = not minimized
-    MainFrame.Size = minimized and UDim2.new(0, 220, 0, 35) or UDim2.new(0, 220, 0, 280)
+    MainFrame.Size = minimized and UDim2.new(0, 230, 0, 38) or UDim2.new(0, 230, 0, 300)
     MinBtn.Text = minimized and "+" or "-"
 end)
 
--- Close & Cleanup
+-- Cleanup
 CloseBtn.MouseButton1Click:Connect(function()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
@@ -312,103 +319,185 @@ CloseBtn.MouseButton1Click:Connect(function()
             if b then b:Destroy() end
         end
     end
+    if AimbotCircle then AimbotCircle:Destroy() end
     ScreenGui:Destroy()
     Notify("FPS Cheat", "Script Closed", 3)
 end)
 
--- ESP System
-local Highlights = {}
-local Billboards = {}
+-- ============================================
+-- AIMBOT FOV CIRCLE (Center Screen)
+-- ============================================
+local AimbotCircle = Instance.new("Frame")
+AimbotCircle.Name = "AimbotFOVCircle"
+AimbotCircle.Size = UDim2.new(0, 140, 0, 140)
+AimbotCircle.Position = UDim2.new(0.5, -70, 0.5, -70)
+AimbotCircle.BackgroundTransparency = 0.85
+AimbotCircle.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+AimbotCircle.BorderSizePixel = 0
+AimbotCircle.Visible = false
+AimbotCircle.ZIndex = 0
+AimbotCircle.Parent = ScreenGui
+local cc = Instance.new("UICorner", AimbotCircle)
+cc.CornerRadius = UDim.new(1, 0)
+
+local CircleOutline = Instance.new("UIStroke", AimbotCircle)
+CircleOutline.Thickness = 2
+CircleOutline.Color = Color3.fromRGB(255, 80, 80)
+
+-- ============================================
+-- ESP SYSTEM (Fixed)
+-- ============================================
+local ESPObjects = {}
+
+local function ClearPlayerESP(player)
+    if player and player.Character then
+        local h = player.Character:FindFirstChild("FPSESP_H")
+        if h then h:Destroy() end
+        local b = player.Character:FindFirstChild("FPSESP_B")
+        if b then b:Destroy() end
+    end
+    ESPObjects[player] = nil
+end
 
 local function CreateESP(player)
     if player == LocalPlayer then return end
+    if not player.Character then return end
+    if Settings.TeamCheck and player.Team == LocalPlayer.Team then
+        ClearPlayerESP(player)
+        return
+    end
+
     local char = player.Character
-    if not char then return end
-    if Settings.TeamCheck and player.Team == LocalPlayer.Team then return end
-
-    if not char:FindFirstChild("FPSESP_H") then
-        local hl = Instance.new("Highlight")
-        hl.Name = "FPSESP_H"
-        hl.FillColor = Settings.ESPColor
-        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-        hl.FillTransparency = 0.7
-        hl.OutlineTransparency = 0
-        hl.Adornee = char
-        hl.Parent = char
-        Highlights[player] = hl
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
+        ClearPlayerESP(player)
+        return
     end
 
-    if not char:FindFirstChild("FPSESP_B") then
-        local bg = Instance.new("BillboardGui")
-        bg.Name = "FPSESP_B"
-        bg.Size = UDim2.new(0, 100, 0, 40)
-        bg.StudsOffset = Vector3.new(0, 3, 0)
-        bg.AlwaysOnTop = true
-
-        local nl = Instance.new("TextLabel")
-        nl.Size = UDim2.new(1, 0, 0.5, 0)
-        nl.BackgroundTransparency = 1
-        nl.Text = player.Name
-        nl.TextColor3 = Settings.ESPColor
-        nl.TextSize = 12
-        nl.Font = Enum.Font.GothamBold
-        nl.Parent = bg
-
-        local dl = Instance.new("TextLabel")
-        dl.Size = UDim2.new(1, 0, 0.5, 0)
-        dl.Position = UDim2.new(0, 0, 0.5, 0)
-        dl.BackgroundTransparency = 1
-        dl.Text = "0m"
-        dl.TextColor3 = Color3.fromRGB(255, 255, 255)
-        dl.TextSize = 10
-        dl.Font = Enum.Font.Gotham
-        dl.Parent = bg
-
-        bg.Parent = char
-        Billboards[player] = bg
-    end
-end
-
-local function ClearESP()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local h = p.Character:FindFirstChild("FPSESP_H")
-            if h then h:Destroy() end
-            local b = p.Character:FindFirstChild("FPSESP_B")
-            if b then b:Destroy() end
+    -- Skip if already created for this character
+    if char:FindFirstChild("FPSESP_H") and char:FindFirstChild("FPSESP_B") then
+        -- Update only
+        local bg = char:FindFirstChild("FPSESP_B")
+        if bg then
+            local distLabel = bg:FindFirstChild("DistLabel")
+            local nameLabel = bg:FindFirstChild("NameLabel")
+            if distLabel and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude)
+                distLabel.Text = dist .. "m"
+            end
+            if nameLabel then
+                nameLabel.TextColor3 = Settings.ESPColor
+            end
+            local hl = char:FindFirstChild("FPSESP_H")
+            if hl then
+                hl.FillColor = Settings.ESPColor
+            end
         end
+        return
     end
-    Highlights = {}
-    Billboards = {}
+
+    -- Remove old if character changed
+    ClearPlayerESP(player)
+
+    -- Highlight
+    local hl = Instance.new("Highlight")
+    hl.Name = "FPSESP_H"
+    hl.FillColor = Settings.ESPColor
+    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+    hl.FillTransparency = 0.65
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Adornee = char
+    hl.Parent = char
+
+    -- Billboard
+    local bg = Instance.new("BillboardGui")
+    bg.Name = "FPSESP_B"
+    bg.Size = UDim2.new(0, 120, 0, 50)
+    bg.StudsOffset = Vector3.new(0, 3.5, 0)
+    bg.AlwaysOnTop = true
+    bg.Parent = char
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"
+    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = Settings.ESPColor
+    nameLabel.TextSize = 13
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.Parent = bg
+
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Name = "DistLabel"
+    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    distLabel.BackgroundTransparency = 1
+    distLabel.Text = "0m"
+    distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    distLabel.TextSize = 11
+    distLabel.Font = Enum.Font.Gotham
+    distLabel.Parent = bg
+
+    ESPObjects[player] = {Highlight = hl, Billboard = bg, Character = char}
 end
 
--- Aimbot
-local function GetTarget()
+local function ClearAllESP()
+    for _, p in pairs(Players:GetPlayers()) do
+        ClearPlayerESP(p)
+    end
+    ESPObjects = {}
+end
+
+-- ============================================
+-- AIMBOT SYSTEM
+-- ============================================
+local function GetAimbotTarget()
     local closest = nil
-    local minDist = Settings.AimbotRange
+    local minScreenDist = math.huge
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
     local myPos = myChar.HumanoidRootPart.Position
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
     for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-            if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
-            local head = p.Character.Head
-            local dist = (head.Position - myPos).Magnitude
-            if dist < minDist then
-                local ray = Ray.new(Camera.CFrame.Position, (head.Position - Camera.CFrame.Position).Unit * dist)
-                local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {myChar, Camera})
-                if hit and (hit:IsDescendantOf(p.Character) or hit.Transparency > 0.5) then
-                    closest = head
-                    minDist = dist
-                end
-            end
+        if p == LocalPlayer then continue end
+        if not p.Character then continue end
+        local head = p.Character:FindFirstChild("Head")
+        local hum = p.Character:FindFirstChildOfClass("Humanoid")
+        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+        if not head or not hum or hum.Health <= 0 or not hrp then continue end
+        if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
+
+        local dist = (hrp.Position - myPos).Magnitude
+        if dist > Settings.AimbotRange then continue end
+
+        -- Check if in FOV circle (screen distance)
+        local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+        if not onScreen then continue end
+        local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+        if screenDist > 70 then continue end -- Within 140px diameter circle
+
+        -- Wallcheck
+        local rayDir = (head.Position - Camera.CFrame.Position).Unit * dist
+        local ray = Ray.new(Camera.CFrame.Position, rayDir)
+        local ignoreList = {myChar, Camera}
+        local hit, hitPos = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+        if hit and not hit:IsDescendantOf(p.Character) and hit.Transparency < 0.5 then
+            continue
+        end
+
+        if screenDist < minScreenDist then
+            minScreenDist = screenDist
+            closest = head
         end
     end
     return closest
 end
 
--- Third Person
+-- ============================================
+-- THIRD PERSON
+-- ============================================
 local tpConnection = nil
 local function UpdateThirdPerson()
     if Settings.ThirdPerson then
@@ -416,8 +505,8 @@ local function UpdateThirdPerson()
             tpConnection = RunService.RenderStepped:Connect(function()
                 if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = LocalPlayer.Character.HumanoidRootPart
-                    local camPos = hrp.Position - hrp.CFrame.LookVector * 8 + Vector3.new(0, 3, 0)
-                    Camera.CFrame = CFrame.new(camPos, hrp.Position + Vector3.new(0, 2, 0))
+                    local camPos = hrp.Position - hrp.CFrame.LookVector * 7 + Vector3.new(0, 2.5, 0)
+                    Camera.CFrame = CFrame.new(camPos, hrp.Position + Vector3.new(0, 1.5, 0))
                 end
             end)
         end
@@ -429,47 +518,43 @@ local function UpdateThirdPerson()
     end
 end
 
--- Main Loop
+-- ============================================
+-- MAIN LOOP
+-- ============================================
 RunService.RenderStepped:Connect(function()
+    -- ESP Update
     if Settings.ESP then
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                if Settings.TeamCheck and p.Team == LocalPlayer.Team then
-                    local h = p.Character:FindFirstChild("FPSESP_H")
-                    if h then h:Destroy() end
-                    local b = p.Character:FindFirstChild("FPSESP_B")
-                    if b then b:Destroy() end
-                else
-                    CreateESP(p)
-                    local bg = Billboards[p]
-                    if bg and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        local d = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
-                        bg.DistLabel.Text = d .. "m"
-                        bg.NameLabel.TextColor3 = Settings.ESPColor
-                    end
-                    local hl = Highlights[p]
-                    if hl then hl.FillColor = Settings.ESPColor end
-                end
+            if p ~= LocalPlayer then
+                CreateESP(p)
             end
         end
     else
-        ClearESP()
+        ClearAllESP()
     end
 
+    -- Aimbot FOV Circle visibility
+    AimbotCircle.Visible = Settings.Aimbot
+
+    -- Aimbot
     if Settings.Aimbot then
-        local t = GetTarget()
-        if t then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position)
+        local target = GetAimbotTarget()
+        if target then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            CircleOutline.Color = Color3.fromRGB(0, 255, 100) -- Green when locked
+        else
+            CircleOutline.Color = Color3.fromRGB(255, 80, 80) -- Red when idle
         end
     end
 
+    -- Third Person
     UpdateThirdPerson()
 end)
 
+-- Cleanup on player leave
 Players.PlayerRemoving:Connect(function(p)
-    Highlights[p] = nil
-    Billboards[p] = nil
+    ClearPlayerESP(p)
 end)
 
 Camera.FieldOfView = Settings.FOV
-Notify("FPS Cheat", "Script Loaded Successfully!", 3)
+Notify("FPS Cheat", "Fixed Script Loaded!", 3)
