@@ -1,5 +1,5 @@
--- Mobile Cheat GUI [Fixed v3]
--- Features: Teleport, Noclip, Infinity Jump, Speed Hack, Anti-Cheat Bypass
+-- Mobile Cheat GUI [Crash-Free Final]
+-- Features: Teleport, Noclip, Infinity Jump, Speed Hack, Light Anti-Cheat
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -24,13 +24,13 @@ local function Notify(title, text, duration)
 end
 
 -- ============================================
--- ANTI-CHEAT BYPASS (Use First!)
+-- LIGHT ANTI-CHEAT BYPASS (Crash-Free)
 -- ============================================
-local function ActivateBypass()
+local function LightBypass()
     local count = 0
 
-    -- 1. Block Kick
-    pcall(function()
+    -- Step 1: Kick Block
+    local ok1, err1 = pcall(function()
         local oldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(self, ...)
             if checkcaller() then return oldKick(self, ...) end
             Notify("Bypass", "Kick blocked", 3)
@@ -38,72 +38,21 @@ local function ActivateBypass()
         end))
         count = count + 1
     end)
+    if not ok1 then Notify("Bypass", "Kick hook skipped", 2) end
 
-    -- 2. Block Force Respawn
-    pcall(function()
+    -- Step 2: LoadCharacter Block
+    local ok2, err2 = pcall(function()
         local oldLoad = hookfunction(LocalPlayer.LoadCharacter, newcclosure(function(self, ...)
             if checkcaller() then return oldLoad(self, ...) end
-            Notify("Bypass", "Forced respawn blocked", 3)
+            Notify("Bypass", "Respawn blocked", 3)
             return nil
         end))
         count = count + 1
     end)
+    if not ok2 then Notify("Bypass", "Respawn hook skipped", 2) end
 
-    -- 3. getgc Deep Scan
-    pcall(function()
-        if getgc and islclosure then
-            for _, func in pairs(getgc(true)) do
-                if type(func) == "function" and islclosure(func) then
-                    local info = debug.getinfo(func)
-                    if info and info.source then
-                        local src = info.source:lower()
-                        if src:find("anticheat") or src:find("detect") or src:find("ban")
-                           or src:find("kick") or src:find("exploit") or src:find("cheat")
-                           or src:find("fly") or src:find("speed") or src:find("teleport")
-                           or src:find("noclip") or src:find("hack") or src:find("check") then
-                            hookfunction(func, newcclosure(function(...)
-                                return nil
-                            end))
-                            count = count + 1
-                        end
-                    end
-                    -- Constant scan
-                    for i = 1, 15 do
-                        pcall(function()
-                            local const = debug.getconstant(func, i)
-                            if type(const) == "string" then
-                                local c = const:lower()
-                                if c:find("ban") or c:find("kick") or c:find("cheat")
-                                   or c:find("exploit") or c:find("hack") or c:find("fly") then
-                                    debug.setconstant(func, i, "safe")
-                                end
-                            end
-                        end)
-                    end
-                end
-            end
-        end
-    end)
-
-    -- 4. Registry Wipe
-    pcall(function()
-        if getreg then
-            for _, v in pairs(getreg()) do
-                if type(v) == "thread" then
-                    pcall(function()
-                        debug.setconstant(v, 1, "nil")
-                    end)
-                elseif type(v) == "function" then
-                    pcall(function()
-                        hookfunction(v, newcclosure(function() return nil end))
-                    end)
-                end
-            end
-        end
-    end)
-
-    -- 5. Metatable Shield
-    pcall(function()
+    -- Step 3: Metatable Shield (Light)
+    local ok3, err3 = pcall(function()
         local mt = getrawmetatable and getrawmetatable(game)
         if mt and setreadonly then
             setreadonly(mt, false)
@@ -116,10 +65,12 @@ local function ActivateBypass()
                 return oldIndex(t, k)
             end)
             setreadonly(mt, true)
+            count = count + 1
         end
     end)
+    if not ok3 then Notify("Bypass", "Meta hook skipped", 2) end
 
-    Notify("Anti-Cheat", "Bypass active! (" .. count .. " neutralized)", 4)
+    Notify("Anti-Cheat", "Active! (" .. count .. " protections)", 4)
     return true
 end
 
@@ -127,7 +78,7 @@ end
 -- GUI SETUP
 -- ============================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CheatHubV3"
+ScreenGui.Name = "CheatHubFinal"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
@@ -151,7 +102,7 @@ Stroke.Thickness = 1.2
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, -60, 0, 40)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Mobile Cheat Hub v3"
+Title.Text = "Mobile Cheat Hub"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 17
 Title.Font = Enum.Font.GothamBold
@@ -250,17 +201,19 @@ local infJump = false
 local speed = false
 local bypass = false
 
--- Bypass Button (MUST USE FIRST)
+-- Bypass Button
 local BypassBtn = MakeButton("Anti-Cheat: OFF", 8, Color3.fromRGB(180, 50, 50))
 BypassBtn.Activated:Connect(function()
     bypass = not bypass
     if bypass then
-        ActivateBypass()
+        Notify("Bypass", "Starting...", 2)
+        LightBypass()
         BypassBtn.Text = "Anti-Cheat: ON"
         BypassBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 70)
     else
         BypassBtn.Text = "Anti-Cheat: OFF"
         BypassBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        Notify("Bypass", "Disabled (restart to clear)", 3)
     end
 end)
 
@@ -275,15 +228,13 @@ SaveBtn.Activated:Connect(function()
     end
 end)
 
--- Teleport (Smooth Lerp to avoid instant detection)
+-- Teleport (Smooth)
 local TpBtn = MakeButton("Teleport", 112)
 TpBtn.Activated:Connect(function()
     if savedCF and HRP then
-        local steps = 5
-        local startCF = HRP.CFrame
-        for i = 1, steps do
-            HRP.CFrame = startCF:Lerp(savedCF, i/steps)
-            task.wait(0.03)
+        for i = 1, 5 do
+            HRP.CFrame = HRP.CFrame:Lerp(savedCF, 0.3)
+            task.wait(0.05)
         end
         Notify("Teleport", "Arrived", 3)
     else
@@ -310,7 +261,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Infinity Jump (Velocity based, not ChangeState)
+-- Infinity Jump
 local JumpBtn = MakeButton("Inf Jump: OFF", 216)
 JumpBtn.Activated:Connect(function()
     infJump = not infJump
@@ -325,7 +276,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Speed (Simple WalkSpeed, no CFrame overwrite)
+-- Speed
 local SpeedBtn = MakeButton("Speed: OFF", 268)
 SpeedBtn.Activated:Connect(function()
     speed = not speed
@@ -342,10 +293,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
     Humanoid = char:WaitForChild("Humanoid")
     HRP = char:WaitForChild("HumanoidRootPart")
-
     if speed then Humanoid.WalkSpeed = 80 end
-    if noclip then Notify("System", "Noclip restored", 2) end
-    if infJump then Notify("System", "Inf Jump restored", 2) end
 end)
 
-Notify("Cheat Hub v3", "Loaded! Enable Anti-Cheat first!", 5)
+Notify("Cheat Hub", "Loaded! Tap Anti-Cheat first", 5)
