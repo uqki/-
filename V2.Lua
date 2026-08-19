@@ -1,12 +1,9 @@
-
--- Roblox FPS Cheats - Obsidian UI
+-- Roblox FPS Cheats - Obsidian UI (fixed)
 -- ESP, Wallhack, Aimbot, Noclip, Speedhack
--- Obsidian UI by Sidereal
--- Compiled through the workshop
+-- Library: https://github.com/deividcomsono/Obsidian (Library.lua)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
@@ -25,8 +22,8 @@ local speedValue = 50
 local espBox = {}
 local wallhackLines = {}
 
-local function createESP(playerObj)
-    if playerObj == player then return end
+local function createESP(plr)
+    if plr == player then return end
     local box = Drawing.new("Square")
     box.Thickness = 2
     box.Color = Color3.fromRGB(255, 0, 0)
@@ -58,7 +55,7 @@ local function createESP(playerObj)
         table.insert(lines, line)
     end
 
-    espBox[playerObj] = {box = box, name = name, distance = distance, lines = lines}
+    espBox[plr] = {box = box, name = name, distance = distance, lines = lines}
 end
 
 local function updateESP()
@@ -73,11 +70,6 @@ local function updateESP()
 
         local root = plr.Character.HumanoidRootPart
         local head = plr.Character:FindFirstChild("Head")
-        local torso = plr.Character:FindFirstChild("UpperTorso") or plr.Character:FindFirstChild("Torso")
-        local humanoidPart = plr.Character:FindFirstChild("HumanoidRootPart")
-
-        if not head or not root then continue end
-
         local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
         if not onScreen then
             data.box.Visible = false
@@ -106,10 +98,9 @@ local function updateESP()
         data.distance.Visible = espEnabled
 
         if wallhackEnabled then
-            local color = wallhackEnabled and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
             for i, line in ipairs(data.lines) do
-                line.Color = color
-                line.Visible = wallhackEnabled
+                line.Color = Color3.fromRGB(255, 0, 0)
+                line.Visible = true
             end
             data.lines[1].From = headPos
             data.lines[1].To = Vector2.new(headPos.X, headPos.Y + height)
@@ -120,13 +111,6 @@ local function updateESP()
             data.lines[4].From = Vector2.new(headPos.X - width, headPos.Y - height)
             data.lines[4].To = headPos
         end
-    end
-end
-
-local function toggleWallhack()
-    wallhackEnabled = not wallhackEnabled
-    for _, data in pairs(espBox) do
-        for _, line in ipairs(data.lines) do line.Visible = wallhackEnabled end
     end
 end
 
@@ -153,57 +137,53 @@ local function aimbotLoop()
 end
 
 local function noclipLoop()
-    if not noclipEnabled then return end
-    if character and humanoid then
-        humanoid:ChangeState(11) -- Noclip state
-    end
+    if not noclipEnabled or not humanoid then return end
+    humanoid:ChangeState(11)
 end
 
 local function speedhackLoop()
-    if not speedhackEnabled then return end
-    if rootPart and humanoid then
-        rootPart.Velocity = rootPart.CFrame.LookVector * speedValue
-    end
+    if not speedhackEnabled or not rootPart then return end
+    rootPart.Velocity = rootPart.CFrame.LookVector * speedValue
 end
 
--- UI Setup - Obsidian
-local Obsidian = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sidereal/Obsidian/main/UI.lua"))()
+-- Obsidian Library Load
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/refs/heads/main/"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 
-local window = Obsidian:CreateWindow("FPS Cheats", Color3.fromRGB(0, 255, 0), "Rat's Edge")
-local mainTab = window:CreateTab("Main")
+local Window = Library:CreateWindow({
+    Title = "FPS Cheats - Obsidian",
+    Footer = "Rat's Edge",
+    ToggleKeybind = Enum.KeyCode.RightShift,
+    Center = true,
+    AutoShow = true
+})
 
-local tabESP = mainTab:CreateTab("ESP")
-tabESP:CreateToggle("ESP", false, function(v) espEnabled = v end)
-tabESP:CreateToggle("Wallhack", false, function(v) wallhackEnabled = v end)
+local MainTab = Window:AddTab("Main", "rocket")
 
-local tabAim = mainTab:CreateTab("Aim")
-tabAim:CreateToggle("Aimbot", false, function(v) aimbotEnabled = v end)
+-- ESP Tab
+local ESPTab = MainTab:AddTab("ESP", "eye")
+ESPTab:AddToggle("ESP", {Text = "ESP", Default = true, Callback = function(v) espEnabled = v end})
+ESPTab:AddToggle("Wallhack", {Text = "Wallhack", Default = true, Callback = function(v) wallhackEnabled = v end})
 
-local tabMisc = mainTab:CreateTab("Misc")
-tabMisc:CreateToggle("Noclip", false, function(v) noclipEnabled = v end)
-tabMisc:CreateSlider("Speed", 16, 100, 50, function(v) speedValue = v end)
-tabMisc:CreateToggle("Speedhack", false, function(v) speedhackEnabled = v end)
+-- Aim Tab
+local AimTab = MainTab:AddTab("Aimbot", "crosshair")
+AimTab:AddToggle("Aimbot", {Text = "Aimbot", Default = true, Callback = function(v) aimbotEnabled = v end})
 
-local tabKeys = mainTab:CreateTab("Keys")
-tabKeys:CreateKeybind("Toggle All", Enum.KeyCode.RightShift, function() 
-    espEnabled = not espEnabled
-    wallhackEnabled = not wallhackEnabled
-    aimbotEnabled = not aimbotEnabled
-    noclipEnabled = not noclipEnabled
-    speedhackEnabled = not speedhackEnabled
-end)
+-- Misc Tab
+local MiscTab = MainTab:AddTab("Misc", "settings")
+MiscTab:AddToggle("Noclip", {Text = "Noclip", Default = true, Callback = function(v) noclipEnabled = v end})
+MiscTab:AddSlider("Speed", {Text = "Speed Value", Default = 50, Min = 16, Max = 100, Callback = function(v) speedValue = v end})
+MiscTab:AddToggle("Speedhack", {Text = "Speedhack", Default = true, Callback = function(v) speedhackEnabled = v end})
 
--- Character Setup
+-- Character
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
 end)
 
--- Create ESP for existing players
-for _, plr in ipairs(Players:GetPlayers()) do
-    createESP(plr)
-end
+-- ESP Setup
+for _, plr in ipairs(Players:GetPlayers()) do createESP(plr) end
 Players.PlayerAdded:Connect(createESP)
 
 -- Loops
@@ -212,4 +192,4 @@ RunService.Heartbeat:Connect(aimbotLoop)
 RunService.Heartbeat:Connect(noclipLoop)
 RunService.Heartbeat:Connect(speedhackLoop)
 
-print("Roblox FPS Cheats - Obsidian UI loaded. Workshop warm. Edge sharp.")
+print("Roblox FPS Cheats Obsidian loaded clean. Workshop warm. Edge sharp.")
