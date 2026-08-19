@@ -1,8 +1,7 @@
 -- ============================================
--- FPS Mobile Cheat - Aimbot+Rapid Merge Edition
--- Removed: RapidFire Toggle (merged into Aimbot)
--- Added: Config Save/Load, FOV 30-180
+-- FPS Mobile Cheat - Compact Edition
 -- Added: Noclip, Infinity Jump, Speed Hack, V-Fly
+-- UI: Zero padding, 4 tabs, mobile optimized
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -28,9 +27,9 @@ local function Notify(title, text, duration)
     })
 end
 
--- Settings
+-- Settings with defaults merge (fixes missing keys on reload)
 local genv = getgenv()
-genv.FPSCheat = genv.FPSCheat or {
+local defaults = {
     ESP = false,
     Aimbot = false,
     ThirdPerson = false,
@@ -42,7 +41,6 @@ genv.FPSCheat = genv.FPSCheat or {
     FireRate = 0.05,
     ESPColor = Color3.fromRGB(255, 0, 0),
     TeamCheck = true,
-    -- Movement additions
     Noclip = false,
     InfinityJump = false,
     SpeedHack = false,
@@ -50,11 +48,17 @@ genv.FPSCheat = genv.FPSCheat or {
     VFly = false,
     FlySpeed = 50,
 }
+genv.FPSCheat = genv.FPSCheat or {}
+for k, v in pairs(defaults) do
+    if genv.FPSCheat[k] == nil then
+        genv.FPSCheat[k] = v
+    end
+end
 local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV6"
+ScreenGui.Name = "FPSMobileCheatV7"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -62,61 +66,61 @@ if not ScreenGui.Parent then
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- Main Frame (height expanded for Move tab)
+-- Main Frame (compact, zero wasted space)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 260, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -130, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 260, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 -- Title Bar
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 36)
+TitleBar.Size = UDim2.new(1, 0, 0, 28)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
 
 local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(1, -80, 1, 0)
-TitleText.Position = UDim2.new(0, 12, 0, 0)
+TitleText.Size = UDim2.new(1, -70, 1, 0)
+TitleText.Position = UDim2.new(0, 8, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "FPS Cheat"
 TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleText.TextSize = 15
+TitleText.TextSize = 14
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
 local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(1, -68, 0, 3)
+MinBtn.Size = UDim2.new(0, 26, 0, 24)
+MinBtn.Position = UDim2.new(1, -58, 0, 2)
 MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.TextSize = 18
+MinBtn.TextSize = 16
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.Parent = TitleBar
-Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 5)
 
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -36, 0, 3)
+CloseBtn.Size = UDim2.new(0, 26, 0, 24)
+CloseBtn.Position = UDim2.new(1, -30, 0, 2)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 14
+CloseBtn.TextSize = 12
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = TitleBar
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 5)
 
--- Tab Bar
+-- Tab Bar (flush to title)
 local TabBar = Instance.new("Frame")
-TabBar.Size = UDim2.new(1, -20, 0, 26)
-TabBar.Position = UDim2.new(0, 10, 0, 38)
+TabBar.Size = UDim2.new(1, 0, 0, 22)
+TabBar.Position = UDim2.new(0, 0, 0, 28)
 TabBar.BackgroundTransparency = 1
 TabBar.Parent = MainFrame
 
@@ -147,133 +151,135 @@ local function CreateTabButton(name, x, width)
     btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(150, 150, 150)
-    btn.TextSize = 12
+    btn.TextSize = 11
     btn.Font = Enum.Font.GothamBold
     btn.Parent = TabBar
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 3)
     btn.MouseButton1Click:Connect(function() SwitchTab(name) end)
     TabButtons[name] = btn
 end
 
--- 4 tabs: Main, Fire, Move, Settings
-local tabWidth = (260 - 20 - 12) / 4
-CreateTabButton("Main", 0, tabWidth)
-CreateTabButton("Fire", tabWidth + 4, tabWidth)
-CreateTabButton("Move", tabWidth * 2 + 8, tabWidth)
-CreateTabButton("Settings", tabWidth * 3 + 12, tabWidth)
+local tabW = 62
+local tabGap = 4
+CreateTabButton("Main", 0, tabW)
+CreateTabButton("Fire", tabW + tabGap, tabW)
+CreateTabButton("Move", tabW * 2 + tabGap * 2, tabW)
+CreateTabButton("Set", tabW * 3 + tabGap * 3, tabW)
 
--- Tab Content
-local ContentY = 68
-local ContentH = 290
+-- Tab Content Frames (flush, no padding)
+local ContentY = 50
+local ContentH = 210
 
 local TabMain = Instance.new("Frame")
-TabMain.Size = UDim2.new(1, -20, 0, ContentH)
-TabMain.Position = UDim2.new(0, 10, 0, ContentY)
+TabMain.Name = "TabMain"
+TabMain.Size = UDim2.new(1, 0, 0, ContentH)
+TabMain.Position = UDim2.new(0, 0, 0, ContentY)
 TabMain.BackgroundTransparency = 1
 TabMain.Visible = true
 TabMain.Parent = MainFrame
 TabFrames["Main"] = TabMain
 
 local TabFire = Instance.new("Frame")
-TabFire.Size = UDim2.new(1, -20, 0, ContentH)
-TabFire.Position = UDim2.new(0, 10, 0, ContentY)
+TabFire.Name = "TabFire"
+TabFire.Size = UDim2.new(1, 0, 0, ContentH)
+TabFire.Position = UDim2.new(0, 0, 0, ContentY)
 TabFire.BackgroundTransparency = 1
 TabFire.Visible = false
 TabFire.Parent = MainFrame
 TabFrames["Fire"] = TabFire
 
 local TabMove = Instance.new("Frame")
-TabMove.Size = UDim2.new(1, -20, 0, ContentH)
-TabMove.Position = UDim2.new(0, 10, 0, ContentY)
+TabMove.Name = "TabMove"
+TabMove.Size = UDim2.new(1, 0, 0, ContentH)
+TabMove.Position = UDim2.new(0, 0, 0, ContentY)
 TabMove.BackgroundTransparency = 1
 TabMove.Visible = false
 TabMove.Parent = MainFrame
 TabFrames["Move"] = TabMove
 
 local TabSettings = Instance.new("Frame")
-TabSettings.Size = UDim2.new(1, -20, 0, ContentH)
-TabSettings.Position = UDim2.new(0, 10, 0, ContentY)
+TabSettings.Name = "TabSettings"
+TabSettings.Size = UDim2.new(1, 0, 0, ContentH)
+TabSettings.Position = UDim2.new(0, 0, 0, ContentY)
 TabSettings.BackgroundTransparency = 1
 TabSettings.Visible = false
 TabSettings.Parent = MainFrame
-TabFrames["Settings"] = TabSettings
+TabFrames["Set"] = TabSettings
 
 SwitchTab("Main")
 
--- Toggle tracking for Save/Load
+-- Toggle tracking
 local ToggleButtons = {}
 
-local function CreateToggle(name, key, y, parent)
+local function CreateToggle(name, key, y, parent, callback)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 34)
+    f.Size = UDim2.new(1, 0, 0, 26)
     f.Position = UDim2.new(0, 0, 0, y)
     f.BackgroundTransparency = 1
     f.Parent = parent
 
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(0.6, 0, 1, 0)
+    l.Position = UDim2.new(0, 4, 0, 0)
     l.BackgroundTransparency = 1
     l.Text = name
     l.TextColor3 = Color3.fromRGB(210, 210, 210)
-    l.TextSize = 13
+    l.TextSize = 12
     l.Font = Enum.Font.Gotham
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Parent = f
 
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 48, 0, 26)
-    b.Position = UDim2.new(1, -48, 0.5, -13)
+    b.Size = UDim2.new(0, 44, 0, 22)
+    b.Position = UDim2.new(1, -48, 0.5, -11)
     b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
     b.Text = Settings[key] and "ON" or "OFF"
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.TextSize = 11
+    b.TextSize = 10
     b.Font = Enum.Font.GothamBold
     b.Parent = f
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
 
     b.MouseButton1Click:Connect(function()
         Settings[key] = not Settings[key]
         b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
         b.Text = Settings[key] and "ON" or "OFF"
-        Notify("FPS Cheat", name .. " " .. (Settings[key] and "Enabled" or "Disabled"), 2)
+        Notify("FPS Cheat", name .. " " .. (Settings[key] and "ON" or "OFF"), 2)
+        if callback then callback() end
     end)
 
     ToggleButtons[key] = b
 end
 
-CreateToggle("ESP / Wallhack", "ESP", 0, TabMain)
-CreateToggle("Aimbot + Rapid", "Aimbot", 38, TabMain)
-CreateToggle("Third Person", "ThirdPerson", 76, TabMain)
-CreateToggle("Headshot Only", "HeadshotOnly", 114, TabMain)
-
--- Slider tracking for Save/Load
+-- Slider tracking
 local activeSlider = nil
 local SliderRefs = {}
 
 local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, parent)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 50)
+    f.Size = UDim2.new(1, 0, 0, 36)
     f.Position = UDim2.new(0, 0, 0, y)
     f.BackgroundTransparency = 1
     f.Parent = parent
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 20)
+    lbl.Size = UDim2.new(1, -8, 0, 16)
+    lbl.Position = UDim2.new(0, 4, 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text = name .. ": " .. (isFloat and string.format("%.3f", Settings[key]) or Settings[key]) .. (suffix or "")
     lbl.TextColor3 = Color3.fromRGB(210, 210, 210)
-    lbl.TextSize = 13
+    lbl.TextSize = 12
     lbl.Font = Enum.Font.Gotham
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = f
 
     local track = Instance.new("Frame")
-    track.Size = UDim2.new(1, 0, 0, 8)
-    track.Position = UDim2.new(0, 0, 0, 28)
+    track.Size = UDim2.new(1, -8, 0, 6)
+    track.Position = UDim2.new(0, 4, 0, 22)
     track.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     track.BorderSizePixel = 0
     track.Parent = f
-    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 3)
 
     local fill = Instance.new("Frame")
     local percent = (Settings[key] - min) / (max - min)
@@ -281,11 +287,11 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, pare
     fill.BackgroundColor3 = color or Color3.fromRGB(0, 150, 255)
     fill.BorderSizePixel = 0
     fill.Parent = track
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
 
     local knob = Instance.new("TextButton")
-    knob.Size = UDim2.new(0, 18, 0, 18)
-    knob.Position = UDim2.new(percent, -9, 0, -5)
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = UDim2.new(percent, -7, 0, -4)
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.Text = ""
     knob.Parent = track
@@ -299,7 +305,7 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, pare
         Settings[key] = isFloat and math.floor(val * 1000) / 1000 or val
         lbl.Text = name .. ": " .. (isFloat and string.format("%.3f", Settings[key]) or Settings[key]) .. (suffix or "")
         fill.Size = UDim2.new(pos, 0, 1, 0)
-        knob.Position = UDim2.new(pos, -9, 0, -5)
+        knob.Position = UDim2.new(pos, -7, 0, -4)
         if key == "FOV" then Camera.FieldOfView = Settings.FOV end
     end
 
@@ -318,60 +324,64 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, pare
     SliderRefs[key] = {fill = fill, knob = knob, lbl = lbl, min = min, max = max, isFloat = isFloat, suffix = suffix, name = name}
 end
 
+-- Main Tab
+CreateToggle("ESP", "ESP", 0, TabMain)
+CreateToggle("Aimbot+Rapid", "Aimbot", 26, TabMain)
+CreateToggle("Third Person", "ThirdPerson", 52, TabMain)
+CreateToggle("Headshot Only", "HeadshotOnly", 78, TabMain)
+
 -- Fire Tab
 CreateSlider("Fire Rate", "FireRate", 0, 0.001, 0.1, "s", true, Color3.fromRGB(255, 200, 0), TabFire)
-CreateSlider("Rapid Range", "RapidRange", 55, 50, 500, "", false, Color3.fromRGB(0, 200, 100), TabFire)
+CreateSlider("Rapid Range", "RapidRange", 36, 50, 500, "", false, Color3.fromRGB(0, 200, 100), TabFire)
 
 -- Move Tab
-CreateToggle("Noclip", "Noclip", 0, TabMove)
-CreateToggle("Infinity Jump", "InfinityJump", 38, TabMove)
-CreateToggle("Speed Hack", "SpeedHack", 76, TabMove)
-CreateSlider("Speed Value", "SpeedValue", 110, 16, 200, "", false, Color3.fromRGB(255, 150, 0), TabMove)
-CreateToggle("V-Fly", "VFly", 164, TabMove)
-CreateSlider("Fly Speed", "FlySpeed", 198, 10, 200, "", false, Color3.fromRGB(0, 200, 255), TabMove)
+CreateToggle("Noclip", "Noclip", 0, TabMove, function() UpdateNoclip() end)
+CreateToggle("Inf Jump", "InfinityJump", 26, TabMove, function() UpdateInfJump() end)
+CreateToggle("Speed", "SpeedHack", 52, TabMove, function() UpdateSpeed() end)
+CreateSlider("Speed Val", "SpeedValue", 78, 16, 200, "", false, Color3.fromRGB(255, 150, 0), TabMove)
+CreateToggle("V-Fly", "VFly", 114, TabMove, function() UpdateVFly() end)
+CreateSlider("Fly Speed", "FlySpeed", 140, 10, 200, "", false, Color3.fromRGB(0, 200, 255), TabMove)
 
 -- Settings Tab
 CreateSlider("FOV", "FOV", 0, 30, 180, "", false, Color3.fromRGB(0, 150, 255), TabSettings)
-CreateSlider("Aim Range", "AimbotRange", 50, 50, 500, "", false, Color3.fromRGB(255, 60, 60), TabSettings)
-CreateSlider("Aim Speed", "AimSpeed", 100, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255), TabSettings)
+CreateSlider("Aim Range", "AimbotRange", 36, 50, 500, "", false, Color3.fromRGB(255, 60, 60), TabSettings)
+CreateSlider("Aim Speed", "AimSpeed", 72, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255), TabSettings)
 
 -- Save / Load Buttons
 local SaveBtn = Instance.new("TextButton")
-SaveBtn.Size = UDim2.new(0.48, 0, 0, 28)
-SaveBtn.Position = UDim2.new(0, 0, 0, 158)
+SaveBtn.Size = UDim2.new(0.48, 0, 0, 22)
+SaveBtn.Position = UDim2.new(0, 4, 0, 114)
 SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 0)
 SaveBtn.Text = "Save"
 SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SaveBtn.TextSize = 12
+SaveBtn.TextSize = 11
 SaveBtn.Font = Enum.Font.GothamBold
 SaveBtn.Parent = TabSettings
-Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 5)
 
 local LoadBtn = Instance.new("TextButton")
-LoadBtn.Size = UDim2.new(0.48, 0, 0, 28)
-LoadBtn.Position = UDim2.new(0.52, 0, 0, 158)
+LoadBtn.Size = UDim2.new(0.48, 0, 0, 22)
+LoadBtn.Position = UDim2.new(0.52, 0, 0, 114)
 LoadBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 LoadBtn.Text = "Load"
 LoadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadBtn.TextSize = 12
+LoadBtn.TextSize = 11
 LoadBtn.Font = Enum.Font.GothamBold
 LoadBtn.Parent = TabSettings
-Instance.new("UICorner", LoadBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", LoadBtn).CornerRadius = UDim.new(0, 5)
 
 -- Config System
 local ConfigFile = "FPSCheat_Mobile.json"
 
 local function RefreshUI()
-    -- Toggles
     for key, btn in pairs(ToggleButtons) do
         btn.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
         btn.Text = Settings[key] and "ON" or "OFF"
     end
-    -- Sliders
     for key, ref in pairs(SliderRefs) do
         local percent = (Settings[key] - ref.min) / (ref.max - ref.min)
         ref.fill.Size = UDim2.new(percent, 0, 1, 0)
-        ref.knob.Position = UDim2.new(percent, -9, 0, -5)
+        ref.knob.Position = UDim2.new(percent, -7, 0, -4)
         ref.lbl.Text = ref.name .. ": " .. (ref.isFloat and string.format("%.3f", Settings[key]) or Settings[key]) .. (ref.suffix or "")
     end
     Camera.FieldOfView = Settings.FOV
@@ -393,7 +403,6 @@ local function SaveConfig()
             ESPColorR = Settings.ESPColor.R,
             ESPColorG = Settings.ESPColor.G,
             ESPColorB = Settings.ESPColor.B,
-            -- Movement
             Noclip = Settings.Noclip,
             InfinityJump = Settings.InfinityJump,
             SpeedHack = Settings.SpeedHack,
@@ -407,21 +416,20 @@ local function SaveConfig()
 end
 
 local function LoadConfig()
-    local ok = pcall(function()
+    local ok, err = pcall(function()
         if isfile(ConfigFile) then
             local data = HttpService:JSONDecode(readfile(ConfigFile))
-            Settings.ESP = data.ESP
-            Settings.Aimbot = data.Aimbot
-            Settings.ThirdPerson = data.ThirdPerson
-            Settings.HeadshotOnly = data.HeadshotOnly
-            Settings.FOV = data.FOV
-            Settings.AimbotRange = data.AimbotRange
-            Settings.RapidRange = data.RapidRange
-            Settings.AimSpeed = data.AimSpeed
-            Settings.FireRate = data.FireRate
-            Settings.TeamCheck = data.TeamCheck
-            Settings.ESPColor = Color3.new(data.ESPColorR, data.ESPColorG, data.ESPColorB)
-            -- Movement
+            Settings.ESP = data.ESP or false
+            Settings.Aimbot = data.Aimbot or false
+            Settings.ThirdPerson = data.ThirdPerson or false
+            Settings.HeadshotOnly = data.HeadshotOnly or false
+            Settings.FOV = data.FOV or 70
+            Settings.AimbotRange = data.AimbotRange or 200
+            Settings.RapidRange = data.RapidRange or 200
+            Settings.AimSpeed = data.AimSpeed or 0.15
+            Settings.FireRate = data.FireRate or 0.05
+            Settings.TeamCheck = data.TeamCheck ~= false
+            Settings.ESPColor = Color3.new(data.ESPColorR or 1, data.ESPColorG or 0, data.ESPColorB or 0)
             Settings.Noclip = data.Noclip or false
             Settings.InfinityJump = data.InfinityJump or false
             Settings.SpeedHack = data.SpeedHack or false
@@ -429,6 +437,14 @@ local function LoadConfig()
             Settings.VFly = data.VFly or false
             Settings.FlySpeed = data.FlySpeed or 50
             RefreshUI()
+            -- Re-apply movement states
+            UpdateNoclip()
+            UpdateInfJump()
+            UpdateSpeed()
+            if Settings.VFly then
+                if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+                UpdateVFly()
+            end
         else
             Notify("Config", "No file found", 2)
         end
@@ -443,12 +459,6 @@ end
 SaveBtn.MouseButton1Click:Connect(SaveConfig)
 LoadBtn.MouseButton1Click:Connect(LoadConfig)
 
--- Extra toggle callbacks for movement
-ToggleButtons["Noclip"].MouseButton1Click:Connect(function() UpdateNoclip() end)
-ToggleButtons["InfinityJump"].MouseButton1Click:Connect(function() UpdateInfJump() end)
-ToggleButtons["SpeedHack"].MouseButton1Click:Connect(function() UpdateSpeed() end)
-ToggleButtons["VFly"].MouseButton1Click:Connect(function() UpdateVFly() end)
-
 -- Slider Input Logic
 UserInputService.InputChanged:Connect(function(i)
     if activeSlider and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then
@@ -460,7 +470,7 @@ UserInputService.InputChanged:Connect(function(i)
         Settings[s.key] = s.isFloat and math.floor(val * 1000) / 1000 or val
         s.lbl.Text = s.name .. ": " .. (s.isFloat and string.format("%.3f", Settings[s.key]) or Settings[s.key]) .. (s.suffix or "")
         s.fill.Size = UDim2.new(pos, 0, 1, 0)
-        s.knob.Position = UDim2.new(pos, -9, 0, -5)
+        s.knob.Position = UDim2.new(pos, -7, 0, -4)
         if s.key == "FOV" then Camera.FieldOfView = Settings.FOV end
     end
 end)
@@ -501,10 +511,14 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     TabBar.Visible = not minimized
-    for _, f in pairs(TabFrames) do f.Visible = not minimized and f.Name == "Tab" .. activeTab end
-    MainFrame.Size = minimized and UDim2.new(0, 260, 0, 36) or UDim2.new(0, 260, 0, 360)
+    for _, f in pairs(TabFrames) do
+        f.Visible = false
+    end
+    if not minimized then
+        SwitchTab(activeTab)
+    end
+    MainFrame.Size = minimized and UDim2.new(0, 260, 0, 28) or UDim2.new(0, 260, 0, 260)
     MinBtn.Text = minimized and "+" or "-"
-    if not minimized then SwitchTab(activeTab) end
 end)
 
 -- Cleanup
@@ -517,13 +531,20 @@ CloseBtn.MouseButton1Click:Connect(function()
             if b then b:Destroy() end
         end
     end
-    -- Disconnect movement connections
     if noclipConnection then noclipConnection:Disconnect() end
     if infJumpConnection then infJumpConnection:Disconnect() end
     if speedConnection then speedConnection:Disconnect() end
     if flyConnection then flyConnection:Disconnect() end
-    if flyGyro then flyGyro:Destroy() end
-    if flyVel then flyVel:Destroy() end
+    -- Restore defaults
+    if LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 16 end
+    end
     ScreenGui:Destroy()
     Notify("FPS Cheat", "Script Closed", 3)
 end)
@@ -625,7 +646,7 @@ local function ClearAllESP()
 end
 
 -- ============================================
--- AIMBOT SYSTEM (Merged with Rapid Fire)
+-- AIMBOT SYSTEM
 -- ============================================
 local function GetTargetBone(character)
     local priority = {"Head", "UpperTorso", "Torso", "HumanoidRootPart"}
@@ -712,8 +733,7 @@ local function GetAimbotTarget()
 end
 
 -- ============================================
--- RAPID FIRE (Merged into Aimbot)
--- Fires automatically when Aimbot locks a target
+-- RAPID FIRE
 -- ============================================
 local bulletId = 0
 
@@ -798,7 +818,7 @@ function UpdateNoclip()
                     end
                 end
             end)
-            Notify("Movement", "Noclip Enabled", 2)
+            Notify("Move", "Noclip ON", 2)
         end
     else
         if noclipConnection then
@@ -811,7 +831,7 @@ function UpdateNoclip()
                     end
                 end
             end
-            Notify("Movement", "Noclip Disabled", 2)
+            Notify("Move", "Noclip OFF", 2)
         end
     end
 end
@@ -822,17 +842,22 @@ function UpdateInfJump()
     if Settings.InfinityJump then
         if not infJumpConnection then
             infJumpConnection = UserInputService.JumpRequest:Connect(function()
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                    LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        hum.Jump = true
+                    end
                 end
             end)
-            Notify("Movement", "Infinity Jump Enabled", 2)
+            Notify("Move", "Inf Jump ON", 2)
         end
     else
         if infJumpConnection then
             infJumpConnection:Disconnect()
             infJumpConnection = nil
-            Notify("Movement", "Infinity Jump Disabled", 2)
+            Notify("Move", "Inf Jump OFF", 2)
         end
     end
 end
@@ -843,110 +868,84 @@ function UpdateSpeed()
     if Settings.SpeedHack then
         if not speedConnection then
             speedConnection = RunService.Heartbeat:Connect(function()
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                    LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Settings.SpeedValue
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum.WalkSpeed = Settings.SpeedValue
+                    end
                 end
             end)
-            Notify("Movement", "Speed Hack Enabled (" .. Settings.SpeedValue .. ")", 2)
+            Notify("Move", "Speed ON (" .. Settings.SpeedValue .. ")", 2)
         end
     else
         if speedConnection then
             speedConnection:Disconnect()
             speedConnection = nil
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.WalkSpeed = 16 end
             end
-            Notify("Movement", "Speed Hack Disabled", 2)
+            Notify("Move", "Speed OFF", 2)
         end
     end
 end
 
--- V-Fly
+-- V-Fly (CFrame based - works on all games)
 local flyConnection = nil
-local flyGyro = nil
-local flyVel = nil
 function UpdateVFly()
     if Settings.VFly then
         if not flyConnection then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                flyGyro = Instance.new("BodyGyro")
-                flyGyro.P = 9e4
-                flyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-                flyGyro.CFrame = hrp.CFrame
-                flyGyro.Parent = hrp
+            flyConnection = RunService.RenderStepped:Connect(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if not hrp or not hum then return end
 
-                flyVel = Instance.new("BodyVelocity")
-                flyVel.Velocity = Vector3.zero
-                flyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-                flyVel.Parent = hrp
+                local camCF = Camera.CFrame
+                local moveDir = hum.MoveDirection
+                local speed = Settings.FlySpeed
 
-                flyConnection = RunService.RenderStepped:Connect(function()
-                    if not flyGyro or not flyVel or not flyGyro.Parent or not flyVel.Parent then
-                        UpdateVFly()
-                        return
-                    end
-                    local camCF = Camera.CFrame
-                    flyGyro.CFrame = camCF
+                local look = camCF.LookVector
+                local right = camCF.RightVector
+                look = Vector3.new(look.X, 0, look.Z).Unit
+                right = Vector3.new(right.X, 0, right.Z).Unit
 
-                    local moveDir = Vector3.zero
-                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                        moveDir = LocalPlayer.Character:FindFirstChildOfClass("Humanoid").MoveDirection
-                    end
+                local flyDir = Vector3.zero
+                if moveDir.Magnitude > 0 then
+                    flyDir = (look * moveDir.Z + right * moveDir.X).Unit * speed
+                end
 
-                    local velocity = (camCF.LookVector * moveDir.Z + camCF.RightVector * moveDir.X) * Settings.FlySpeed
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    flyDir = flyDir + Vector3.new(0, speed * 0.5, 0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    flyDir = flyDir - Vector3.new(0, speed * 0.5, 0)
+                end
 
-                    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                        velocity = velocity + Vector3.new(0, Settings.FlySpeed * 0.5, 0)
-                    end
-                    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                        velocity = velocity - Vector3.new(0, Settings.FlySpeed * 0.5, 0)
-                    end
-
-                    flyVel.Velocity = velocity
-                end)
-                Notify("Movement", "V-Fly Enabled", 2)
-            else
-                Notify("Movement", "V-Fly Failed: No Character", 2)
-                Settings.VFly = false
-                ToggleButtons["VFly"].BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-                ToggleButtons["VFly"].Text = "OFF"
-            end
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.CFrame = hrp.CFrame + flyDir * 0.016
+            end)
+            Notify("Move", "V-Fly ON", 2)
         end
     else
         if flyConnection then
             flyConnection:Disconnect()
             flyConnection = nil
         end
-        if flyGyro then
-            flyGyro:Destroy()
-            flyGyro = nil
-        end
-        if flyVel then
-            flyVel:Destroy()
-            flyVel = nil
-        end
-        Notify("Movement", "V-Fly Disabled", 2)
+        Notify("Move", "V-Fly OFF", 2)
     end
 end
 
--- Re-apply VFly on respawn
+-- Respawn handler
 LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if Settings.Noclip then UpdateNoclip() end
+    if Settings.SpeedHack then UpdateSpeed() end
     if Settings.VFly then
-        if flyConnection then
-            flyConnection:Disconnect()
-            flyConnection = nil
-        end
-        if flyGyro then
-            flyGyro:Destroy()
-            flyGyro = nil
-        end
-        if flyVel then
-            flyVel:Destroy()
-            flyVel = nil
-        end
-        task.wait(0.3)
+        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
         UpdateVFly()
     end
 end)
@@ -983,4 +982,4 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 
 Camera.FieldOfView = Settings.FOV
-Notify("FPS Cheat", "Aimbot+Rapid + Movement Ready!", 3)
+Notify("FPS Cheat", "Loaded! Move tab added.", 3)
