@@ -1,6 +1,7 @@
 -- ============================================
 -- FPS Mobile Cheat - Aimbot+Rapid + Movement Edition
--- Fixed: VFly (integrated NoClip + RenderStepped override), NoClip coexistence
+-- Removed: NoClip
+-- Updated: VFly (BodyVelocity + BodyGyro, collision restore, respawn-safe)
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -33,7 +34,6 @@ genv.FPSCheat = genv.FPSCheat or {
     Aimbot = false,
     ThirdPerson = false,
     HeadshotOnly = false,
-    NoClip = false,
     VFly = false,
     InfinityJump = false,
     SpeedHack = false,
@@ -50,7 +50,7 @@ local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV9"
+ScreenGui.Name = "FPSMobileCheatV11"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -241,11 +241,10 @@ CreateToggle("Aimbot + Rapid", "Aimbot", 32, TabMain)
 CreateToggle("Third Person", "ThirdPerson", 64, TabMain)
 CreateToggle("Headshot Only", "HeadshotOnly", 96, TabMain)
 
--- Move Tab Toggles
-CreateToggle("NoClip", "NoClip", 0, TabMove)
-CreateToggle("VFly", "VFly", 32, TabMove)
-CreateToggle("Infinity Jump", "InfinityJump", 64, TabMove)
-CreateToggle("Speed Hack", "SpeedHack", 96, TabMove)
+-- Move Tab Toggles (NoClip removed)
+CreateToggle("VFly", "VFly", 0, TabMove)
+CreateToggle("Infinity Jump", "InfinityJump", 32, TabMove)
+CreateToggle("Speed Hack", "SpeedHack", 64, TabMove)
 
 -- Slider tracking for Save/Load
 local activeSlider = nil
@@ -324,7 +323,7 @@ CreateSlider("Fire Rate", "FireRate", 0, 0.001, 0.1, "s", true, Color3.fromRGB(2
 CreateSlider("Rapid Range", "RapidRange", 52, 50, 500, "", false, Color3.fromRGB(0, 200, 100), TabFire)
 
 -- Move Tab Sliders
-CreateSlider("Speed Value", "SpeedValue", 128, 16, 200, "", false, Color3.fromRGB(255, 100, 0), TabMove)
+CreateSlider("Speed Value", "SpeedValue", 96, 16, 200, "", false, Color3.fromRGB(255, 100, 0), TabMove)
 
 -- Settings Tab
 CreateSlider("FOV", "FOV", 0, 30, 180, "", false, Color3.fromRGB(0, 150, 255), TabSettings)
@@ -378,7 +377,6 @@ local function SaveConfig()
             Aimbot = Settings.Aimbot,
             ThirdPerson = Settings.ThirdPerson,
             HeadshotOnly = Settings.HeadshotOnly,
-            NoClip = Settings.NoClip,
             VFly = Settings.VFly,
             InfinityJump = Settings.InfinityJump,
             SpeedHack = Settings.SpeedHack,
@@ -406,7 +404,6 @@ local function LoadConfig()
             Settings.Aimbot = data.Aimbot
             Settings.ThirdPerson = data.ThirdPerson
             Settings.HeadshotOnly = data.HeadshotOnly
-            Settings.NoClip = data.NoClip
             Settings.VFly = data.VFly
             Settings.InfinityJump = data.InfinityJump
             Settings.SpeedHack = data.SpeedHack
@@ -495,7 +492,6 @@ end)
 -- CONNECTIONS & STATE MANAGEMENT
 -- ============================================
 local tpConnection = nil
-local noclipConnection = nil
 local vflyConnection = nil
 local infinityJumpConnection = nil
 local speedConnection = nil
@@ -751,112 +747,132 @@ local function UpdateThirdPerson()
 end
 
 -- ============================================
--- NOCLIP SYSTEM (VFly takes priority)
+-- VFly SYSTEM
+-- BodyVelocity + BodyGyro
+-- No PlatformStand / No CFrame override
+-- VFly中はNoclip（元のCanCollide状態を保存・復元）
 -- ============================================
-local function UpdateNoClip()
-    if Settings.NoClip and not Settings.VFly then
-        if not noclipConnection then
-            noclipConnection = RunService.Stepped:Connect(function()
-                if LocalPlayer.Character then
-                    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
-                    end
+local vflyBV = nil
+local vflyBG = nil
+local vflyCollisionStates = {}
+
+local function SetVFlyCollision(char, enabled)
+    if not char then return end
+    for _, obj in ipairs(char:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            if enabled then
+                if vflyCollisionStates[obj] == nil then
+                    vflyCollisionStates[obj] = obj.CanCollide
                 end
-            end)
-        end
-    else
-        if noclipConnection then
-            noclipConnection:Disconnect()
-            noclipConnection = nil
-        end
-        if not Settings.VFly and LocalPlayer.Character then
-            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
+                obj.CanCollide = false
+            else
+                local original = vflyCollisionStates[obj]
+                if original ~= nil and obj.Parent then
+                    obj.CanCollide = original
                 end
+                vflyCollisionStates[obj] = nil
             end
         end
     end
 end
 
--- ============================================
--- VFly SYSTEM (Fixed: Integrated NoClip + RenderStepped override)
--- ============================================
+local function CreateVFlyObjects(hrp)
+    if not hrp then return end
+    local oldBV = hrp:FindFirstChild("FPSVFly_BV")
+    if oldBV then oldBV:Destroy() end
+    local oldBG = hrp:FindFirstChild("FPSVFly_BG")
+    if oldBG then oldBG:Destroy() end
+
+    vflyBV = Instance.new("BodyVelocity")
+    vflyBV.Name = "FPSVFly_BV"
+    vflyBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    vflyBV.Velocity = Vector3.zero
+    vflyBV.Parent = hrp
+
+    vflyBG = Instance.new("BodyGyro")
+    vflyBG.Name = "FPSVFly_BG"
+    vflyBG.MaxTorque = Vector3.new(0, math.huge, 0)
+    vflyBG.P = 10000
+    vflyBG.CFrame = hrp.CFrame
+    vflyBG.Parent = hrp
+end
+
 local function UpdateVFly()
     if Settings.VFly then
-        if not vflyConnection then
-            vflyConnection = RunService.RenderStepped:Connect(function()
-                local char = LocalPlayer.Character
-                if not char then return end
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if not hrp or not hum then return end
+        if vflyConnection then return end
 
-                -- Integrated NoClip: disable collision for all parts
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
 
-                -- Disable default humanoid physics
-                hum.PlatformStand = true
-                hum.AutoRotate = false
+        CreateVFlyObjects(hrp)
+        SetVFlyCollision(char, true)
 
-                -- Completely freeze physics to prevent gravity
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
+        vflyConnection = RunService.RenderStepped:Connect(function()
+            if not Settings.VFly then return end
 
-                -- Camera-relative movement
-                local camCF = Camera.CFrame
-                local moveDir = hum.MoveDirection
+            local currentChar = LocalPlayer.Character
+            if not currentChar then return end
+            local currentHRP = currentChar:FindFirstChild("HumanoidRootPart")
+            local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
+            if not currentHRP or not currentHum then return end
 
-                local camLook = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z)
-                local camRight = Vector3.new(camCF.RightVector.X, 0, camCF.RightVector.Z)
-                if camLook.Magnitude > 0 then camLook = camLook.Unit end
-                if camRight.Magnitude > 0 then camRight = camRight.Unit end
+            -- Respawn対策
+            local bv = currentHRP:FindFirstChild("FPSVFly_BV")
+            local bg = currentHRP:FindFirstChild("FPSVFly_BG")
+            if not bv or not bg then
+                CreateVFlyObjects(currentHRP)
+                bv = currentHRP:FindFirstChild("FPSVFly_BV")
+                bg = currentHRP:FindFirstChild("FPSVFly_BG")
+            end
 
-                -- Project move direction onto camera plane
-                local worldMove = camLook * moveDir.Z + camRight * moveDir.X
+            -- Noclip
+            SetVFlyCollision(currentChar, true)
 
-                -- Apply position
-                local newPos = hrp.Position
-                if worldMove.Magnitude > 0.01 then
-                    newPos = newPos + worldMove.Unit * Settings.SpeedValue * (1/60)
-                end
+            -- Camera-relative movement
+            local camCF = Camera.CFrame
+            local camLook = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z)
+            local camRight = Vector3.new(camCF.RightVector.X, 0, camCF.RightVector.Z)
+            if camLook.Magnitude > 0 then camLook = camLook.Unit end
+            if camRight.Magnitude > 0 then camRight = camRight.Unit end
 
-                -- Face camera direction horizontally
-                local lookVec = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z)
-                if lookVec.Magnitude > 0 then
-                    hrp.CFrame = CFrame.new(newPos, newPos + lookVec.Unit)
-                else
-                    hrp.CFrame = CFrame.new(newPos)
-                end
-            end)
-        end
+            local moveDir = currentHum.MoveDirection
+            local inputX = moveDir:Dot(camRight)
+            local inputZ = moveDir:Dot(camLook)
+            local worldMove = camRight * inputX + camLook * inputZ
+
+            local velocity = Vector3.zero
+            if worldMove.Magnitude > 0.01 then
+                velocity = worldMove.Unit * Settings.SpeedValue
+            end
+
+            if bv then
+                bv.Velocity = Vector3.new(velocity.X, 0, velocity.Z)
+            end
+            if bg and camLook.Magnitude > 0 then
+                bg.CFrame = CFrame.new(currentHRP.Position, currentHRP.Position + camLook)
+            end
+        end)
     else
         if vflyConnection then
             vflyConnection:Disconnect()
             vflyConnection = nil
         end
+        if vflyBV then
+            vflyBV:Destroy()
+            vflyBV = nil
+        end
+        if vflyBG then
+            vflyBG:Destroy()
+            vflyBG = nil
+        end
         local char = LocalPlayer.Character
         if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.PlatformStand = false
-                hum.AutoRotate = true
-            end
-            -- Restore collision only if NoClip is also OFF
-            if not Settings.NoClip then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
-                end
-            end
+            SetVFlyCollision(char, false)
         end
+        table.clear(vflyCollisionStates)
     end
 end
 
@@ -913,27 +929,32 @@ end
 -- CLEANUP ON CLOSE
 -- ============================================
 local function CleanupAll()
-    -- Stop all toggles
     Settings.ESP = false
     Settings.Aimbot = false
     Settings.ThirdPerson = false
     Settings.HeadshotOnly = false
-    Settings.NoClip = false
     Settings.VFly = false
     Settings.InfinityJump = false
     Settings.SpeedHack = false
     currentTarget = nil
 
-    -- Disconnect all connections
     if tpConnection then tpConnection:Disconnect() tpConnection = nil end
-    if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
     if vflyConnection then vflyConnection:Disconnect() vflyConnection = nil end
     if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
     if speedConnection then speedConnection:Disconnect() speedConnection = nil end
 
-    -- Restore character physics
+    if vflyBV then vflyBV:Destroy() vflyBV = nil end
+    if vflyBG then vflyBG:Destroy() vflyBG = nil end
     local char = LocalPlayer.Character
     if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local oldBV = hrp:FindFirstChild("FPSVFly_BV")
+            if oldBV then oldBV:Destroy() end
+            local oldBG = hrp:FindFirstChild("FPSVFly_BG")
+            if oldBG then oldBG:Destroy() end
+        end
+        SetVFlyCollision(char, false)
         for _, part in pairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = true
@@ -945,20 +966,15 @@ local function CleanupAll()
             hum.AutoRotate = true
             hum.WalkSpeed = 16
         end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.RotVelocity = Vector3.new(0, 0, 0)
+        local hrp2 = char:FindFirstChild("HumanoidRootPart")
+        if hrp2 then
+            hrp2.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp2.RotVelocity = Vector3.new(0, 0, 0)
         end
     end
 
-    -- Clear ESP
     ClearAllESP()
-
-    -- Restore Camera
     Camera.FieldOfView = 70
-
-    -- Destroy UI
     ScreenGui:Destroy()
 
     Notify("FPS Cheat", "Script Closed - All features stopped", 3)
@@ -991,7 +1007,6 @@ RunService.RenderStepped:Connect(function()
     end
 
     UpdateThirdPerson()
-    UpdateNoClip()
     UpdateVFly()
     UpdateInfinityJump()
     UpdateSpeedHack()
