@@ -1,6 +1,6 @@
 -- ============================================
 -- FPS Mobile Cheat - Aimbot+Rapid + Movement Edition
--- Added: NoClip, VFly, InfinityJump, SpeedHack
+-- Fixed: SpeedHack (CFrame), VFly (PlatformStand), UI spacing, Cleanup on Close
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -50,7 +50,7 @@ local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV7"
+ScreenGui.Name = "FPSMobileCheatV8"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -200,7 +200,7 @@ local ToggleButtons = {}
 
 local function CreateToggle(name, key, y, parent)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 34)
+    f.Size = UDim2.new(1, 0, 0, 30)
     f.Position = UDim2.new(0, 0, 0, y)
     f.BackgroundTransparency = 1
     f.Parent = parent
@@ -216,8 +216,8 @@ local function CreateToggle(name, key, y, parent)
     l.Parent = f
 
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 48, 0, 26)
-    b.Position = UDim2.new(1, -48, 0.5, -13)
+    b.Size = UDim2.new(0, 48, 0, 24)
+    b.Position = UDim2.new(1, -48, 0.5, -12)
     b.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(70, 70, 70)
     b.Text = Settings[key] and "ON" or "OFF"
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -237,15 +237,15 @@ local function CreateToggle(name, key, y, parent)
 end
 
 CreateToggle("ESP / Wallhack", "ESP", 0, TabMain)
-CreateToggle("Aimbot + Rapid", "Aimbot", 38, TabMain)
-CreateToggle("Third Person", "ThirdPerson", 76, TabMain)
-CreateToggle("Headshot Only", "HeadshotOnly", 114, TabMain)
+CreateToggle("Aimbot + Rapid", "Aimbot", 32, TabMain)
+CreateToggle("Third Person", "ThirdPerson", 64, TabMain)
+CreateToggle("Headshot Only", "HeadshotOnly", 96, TabMain)
 
 -- Move Tab Toggles
 CreateToggle("NoClip", "NoClip", 0, TabMove)
-CreateToggle("VFly", "VFly", 38, TabMove)
-CreateToggle("Infinity Jump", "InfinityJump", 76, TabMove)
-CreateToggle("Speed Hack", "SpeedHack", 114, TabMove)
+CreateToggle("VFly", "VFly", 32, TabMove)
+CreateToggle("Infinity Jump", "InfinityJump", 64, TabMove)
+CreateToggle("Speed Hack", "SpeedHack", 96, TabMove)
 
 -- Slider tracking for Save/Load
 local activeSlider = nil
@@ -253,13 +253,13 @@ local SliderRefs = {}
 
 local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, parent)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, 50)
+    f.Size = UDim2.new(1, 0, 0, 46)
     f.Position = UDim2.new(0, 0, 0, y)
     f.BackgroundTransparency = 1
     f.Parent = parent
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 20)
+    lbl.Size = UDim2.new(1, 0, 0, 18)
     lbl.BackgroundTransparency = 1
     lbl.Text = name .. ": " .. (isFloat and string.format("%.3f", Settings[key]) or Settings[key]) .. (suffix or "")
     lbl.TextColor3 = Color3.fromRGB(210, 210, 210)
@@ -270,7 +270,7 @@ local function CreateSlider(name, key, y, min, max, suffix, isFloat, color, pare
 
     local track = Instance.new("Frame")
     track.Size = UDim2.new(1, 0, 0, 8)
-    track.Position = UDim2.new(0, 0, 0, 28)
+    track.Position = UDim2.new(0, 0, 0, 26)
     track.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     track.BorderSizePixel = 0
     track.Parent = f
@@ -321,20 +321,20 @@ end
 
 -- Fire Tab
 CreateSlider("Fire Rate", "FireRate", 0, 0.001, 0.1, "s", true, Color3.fromRGB(255, 200, 0), TabFire)
-CreateSlider("Rapid Range", "RapidRange", 55, 50, 500, "", false, Color3.fromRGB(0, 200, 100), TabFire)
+CreateSlider("Rapid Range", "RapidRange", 52, 50, 500, "", false, Color3.fromRGB(0, 200, 100), TabFire)
 
 -- Move Tab Sliders
-CreateSlider("Speed Value", "SpeedValue", 152, 16, 200, "", false, Color3.fromRGB(255, 100, 0), TabMove)
+CreateSlider("Speed Value", "SpeedValue", 128, 16, 200, "", false, Color3.fromRGB(255, 100, 0), TabMove)
 
 -- Settings Tab
 CreateSlider("FOV", "FOV", 0, 30, 180, "", false, Color3.fromRGB(0, 150, 255), TabSettings)
-CreateSlider("Aim Range", "AimbotRange", 50, 50, 500, "", false, Color3.fromRGB(255, 60, 60), TabSettings)
-CreateSlider("Aim Speed", "AimSpeed", 100, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255), TabSettings)
+CreateSlider("Aim Range", "AimbotRange", 52, 50, 500, "", false, Color3.fromRGB(255, 60, 60), TabSettings)
+CreateSlider("Aim Speed", "AimSpeed", 104, 0.01, 0.5, "", true, Color3.fromRGB(150, 0, 255), TabSettings)
 
 -- Save / Load Buttons
 local SaveBtn = Instance.new("TextButton")
 SaveBtn.Size = UDim2.new(0.48, 0, 0, 28)
-SaveBtn.Position = UDim2.new(0, 0, 0, 158)
+SaveBtn.Position = UDim2.new(0, 0, 0, 156)
 SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 0)
 SaveBtn.Text = "Save"
 SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -345,7 +345,7 @@ Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
 
 local LoadBtn = Instance.new("TextButton")
 LoadBtn.Size = UDim2.new(0.48, 0, 0, 28)
-LoadBtn.Position = UDim2.new(0.52, 0, 0, 158)
+LoadBtn.Position = UDim2.new(0.52, 0, 0, 156)
 LoadBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 LoadBtn.Text = "Load"
 LoadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -491,19 +491,14 @@ MinBtn.MouseButton1Click:Connect(function()
     if not minimized then SwitchTab(activeTab) end
 end)
 
--- Cleanup
-CloseBtn.MouseButton1Click:Connect(function()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local h = p.Character:FindFirstChild("FPSESP_H")
-            if h then h:Destroy() end
-            local b = p.Character:FindFirstChild("FPSESP_B")
-            if b then b:Destroy() end
-        end
-    end
-    ScreenGui:Destroy()
-    Notify("FPS Cheat", "Script Closed", 3)
-end)
+-- ============================================
+-- CONNECTIONS & STATE MANAGEMENT
+-- ============================================
+local tpConnection = nil
+local noclipConnection = nil
+local vflyConnection = nil
+local infinityJumpConnection = nil
+local speedConnection = nil
 
 -- ============================================
 -- ESP SYSTEM
@@ -736,7 +731,6 @@ end)
 -- ============================================
 -- THIRD PERSON
 -- ============================================
-local tpConnection = nil
 local function UpdateThirdPerson()
     if Settings.ThirdPerson then
         if not tpConnection then
@@ -759,7 +753,6 @@ end
 -- ============================================
 -- NOCLIP SYSTEM
 -- ============================================
-local noclipConnection = nil
 local function UpdateNoClip()
     if Settings.NoClip then
         if not noclipConnection then
@@ -789,58 +782,40 @@ local function UpdateNoClip()
 end
 
 -- ============================================
--- VFly SYSTEM
+-- VFly SYSTEM (Fixed: CFrame-based hover)
 -- ============================================
-local vflyConnection = nil
-local vflyBodyVelocity = nil
 local function UpdateVFly()
     if Settings.VFly then
         if not vflyConnection then
-            vflyConnection = RunService.RenderStepped:Connect(function()
+            vflyConnection = RunService.Heartbeat:Connect(function(dt)
                 local char = LocalPlayer.Character
                 if not char then return end
                 local hrp = char:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if not hrp or not hum then return end
 
-                if not vflyBodyVelocity then
-                    vflyBodyVelocity = Instance.new("BodyVelocity")
-                    vflyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                    vflyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-                    vflyBodyVelocity.Parent = hrp
-                end
+                hum.PlatformStand = true
+                hum.AutoRotate = false
 
                 local camCF = Camera.CFrame
-                local moveDir = Vector3.new(0, 0, 0)
+                local moveDir = hum.MoveDirection
 
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                    moveDir = moveDir + camCF.LookVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                    moveDir = moveDir - camCF.LookVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                    moveDir = moveDir - camCF.RightVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                    moveDir = moveDir + camCF.RightVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    moveDir = moveDir + Vector3.new(0, 1, 0)
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                    moveDir = moveDir - Vector3.new(0, 1, 0)
-                end
+                local forward = camCF.LookVector
+                forward = Vector3.new(forward.X, 0, forward.Z)
+                if forward.Magnitude > 0 then forward = forward.Unit end
+                local right = camCF.RightVector
+                right = Vector3.new(right.X, 0, right.Z)
+                if right.Magnitude > 0 then right = right.Unit end
 
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    moveDir = moveDir + hum.MoveDirection
-                end
-
+                local targetPos = hrp.Position
                 if moveDir.Magnitude > 0 then
-                    vflyBodyVelocity.Velocity = moveDir.Unit * Settings.SpeedValue
-                else
-                    vflyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                    local worldDir = forward * moveDir.Z + right * moveDir.X
+                    targetPos = targetPos + worldDir * Settings.SpeedValue * dt
                 end
+
+                hrp.CFrame = CFrame.new(targetPos)
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
             end)
         end
     else
@@ -848,9 +823,13 @@ local function UpdateVFly()
             vflyConnection:Disconnect()
             vflyConnection = nil
         end
-        if vflyBodyVelocity then
-            vflyBodyVelocity:Destroy()
-            vflyBodyVelocity = nil
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.PlatformStand = false
+                hum.AutoRotate = true
+            end
         end
     end
 end
@@ -858,7 +837,6 @@ end
 -- ============================================
 -- INFINITY JUMP SYSTEM
 -- ============================================
-local infinityJumpConnection = nil
 local function UpdateInfinityJump()
     if Settings.InfinityJump then
         if not infinityJumpConnection then
@@ -881,19 +859,19 @@ local function UpdateInfinityJump()
 end
 
 -- ============================================
--- SPEED HACK SYSTEM
+-- SPEED HACK SYSTEM (Fixed: CFrame-based)
 -- ============================================
-local speedConnection = nil
 local function UpdateSpeedHack()
     if Settings.SpeedHack then
         if not speedConnection then
-            speedConnection = RunService.RenderStepped:Connect(function()
+            speedConnection = RunService.Heartbeat:Connect(function(dt)
                 local char = LocalPlayer.Character
-                if char then
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    if hum then
-                        hum.WalkSpeed = Settings.SpeedValue
-                    end
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if not hrp or not hum then return end
+                if hum.MoveDirection.Magnitude > 0 then
+                    hrp.CFrame = hrp.CFrame + hum.MoveDirection * Settings.SpeedValue * dt
                 end
             end)
         end
@@ -902,15 +880,65 @@ local function UpdateSpeedHack()
             speedConnection:Disconnect()
             speedConnection = nil
         end
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = 16
-            end
-        end
     end
 end
+
+-- ============================================
+-- CLEANUP ON CLOSE
+-- ============================================
+local function CleanupAll()
+    -- Stop all toggles
+    Settings.ESP = false
+    Settings.Aimbot = false
+    Settings.ThirdPerson = false
+    Settings.HeadshotOnly = false
+    Settings.NoClip = false
+    Settings.VFly = false
+    Settings.InfinityJump = false
+    Settings.SpeedHack = false
+    currentTarget = nil
+
+    -- Disconnect all connections
+    if tpConnection then tpConnection:Disconnect() tpConnection = nil end
+    if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+    if vflyConnection then vflyConnection:Disconnect() vflyConnection = nil end
+    if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
+    if speedConnection then speedConnection:Disconnect() speedConnection = nil end
+
+    -- Restore character physics
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+            hum.AutoRotate = true
+            hum.WalkSpeed = 16
+        end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.RotVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+
+    -- Clear ESP
+    ClearAllESP()
+
+    -- Restore Camera
+    Camera.FieldOfView = 70
+
+    -- Destroy UI
+    ScreenGui:Destroy()
+
+    Notify("FPS Cheat", "Script Closed - All features stopped", 3)
+end
+
+CloseBtn.MouseButton1Click:Connect(CleanupAll)
 
 -- ============================================
 -- MAIN LOOP
