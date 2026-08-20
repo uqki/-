@@ -1,6 +1,6 @@
 -- ============================================
 -- FPS Mobile Cheat - Aimbot+Rapid + Movement Edition
--- Fixed: SpeedHack (CFrame), VFly (PlatformStand), UI spacing, Cleanup on Close
+-- Fixed: VFly (integrated NoClip + RenderStepped override), NoClip coexistence
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -50,7 +50,7 @@ local Settings = genv.FPSCheat
 
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "FPSMobileCheatV8"
+ScreenGui.Name = "FPSMobileCheatV9"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 pcall(function() ScreenGui.Parent = CoreGui end)
@@ -751,10 +751,10 @@ local function UpdateThirdPerson()
 end
 
 -- ============================================
--- NOCLIP SYSTEM
+-- NOCLIP SYSTEM (VFly takes priority)
 -- ============================================
 local function UpdateNoClip()
-    if Settings.NoClip then
+    if Settings.NoClip and not Settings.VFly then
         if not noclipConnection then
             noclipConnection = RunService.Stepped:Connect(function()
                 if LocalPlayer.Character then
@@ -771,7 +771,7 @@ local function UpdateNoClip()
             noclipConnection:Disconnect()
             noclipConnection = nil
         end
-        if LocalPlayer.Character then
+        if not Settings.VFly and LocalPlayer.Character then
             for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = true
@@ -782,40 +782,58 @@ local function UpdateNoClip()
 end
 
 -- ============================================
--- VFly SYSTEM (Fixed: CFrame-based hover)
+-- VFly SYSTEM (Fixed: Integrated NoClip + RenderStepped override)
 -- ============================================
 local function UpdateVFly()
     if Settings.VFly then
         if not vflyConnection then
-            vflyConnection = RunService.Heartbeat:Connect(function(dt)
+            vflyConnection = RunService.RenderStepped:Connect(function()
                 local char = LocalPlayer.Character
                 if not char then return end
                 local hrp = char:FindFirstChild("HumanoidRootPart")
                 local hum = char:FindFirstChildOfClass("Humanoid")
                 if not hrp or not hum then return end
 
+                -- Integrated NoClip: disable collision for all parts
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+
+                -- Disable default humanoid physics
                 hum.PlatformStand = true
                 hum.AutoRotate = false
 
+                -- Completely freeze physics to prevent gravity
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+
+                -- Camera-relative movement
                 local camCF = Camera.CFrame
                 local moveDir = hum.MoveDirection
 
-                local forward = camCF.LookVector
-                forward = Vector3.new(forward.X, 0, forward.Z)
-                if forward.Magnitude > 0 then forward = forward.Unit end
-                local right = camCF.RightVector
-                right = Vector3.new(right.X, 0, right.Z)
-                if right.Magnitude > 0 then right = right.Unit end
+                local camLook = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z)
+                local camRight = Vector3.new(camCF.RightVector.X, 0, camCF.RightVector.Z)
+                if camLook.Magnitude > 0 then camLook = camLook.Unit end
+                if camRight.Magnitude > 0 then camRight = camRight.Unit end
 
-                local targetPos = hrp.Position
-                if moveDir.Magnitude > 0 then
-                    local worldDir = forward * moveDir.Z + right * moveDir.X
-                    targetPos = targetPos + worldDir * Settings.SpeedValue * dt
+                -- Project move direction onto camera plane
+                local worldMove = camLook * moveDir.Z + camRight * moveDir.X
+
+                -- Apply position
+                local newPos = hrp.Position
+                if worldMove.Magnitude > 0.01 then
+                    newPos = newPos + worldMove.Unit * Settings.SpeedValue * (1/60)
                 end
 
-                hrp.CFrame = CFrame.new(targetPos)
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
+                -- Face camera direction horizontally
+                local lookVec = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z)
+                if lookVec.Magnitude > 0 then
+                    hrp.CFrame = CFrame.new(newPos, newPos + lookVec.Unit)
+                else
+                    hrp.CFrame = CFrame.new(newPos)
+                end
             end)
         end
     else
@@ -829,6 +847,14 @@ local function UpdateVFly()
             if hum then
                 hum.PlatformStand = false
                 hum.AutoRotate = true
+            end
+            -- Restore collision only if NoClip is also OFF
+            if not Settings.NoClip then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
             end
         end
     end
@@ -859,7 +885,7 @@ local function UpdateInfinityJump()
 end
 
 -- ============================================
--- SPEED HACK SYSTEM (Fixed: CFrame-based)
+-- SPEED HACK SYSTEM (CFrame-based)
 -- ============================================
 local function UpdateSpeedHack()
     if Settings.SpeedHack then
